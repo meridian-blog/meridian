@@ -1,0 +1,175 @@
+# =============================================================================
+# Meridian Blog Engine - Docker Compose
+#
+# Usage:
+#   Development (default):  docker compose up
+#   Production:             docker compose --profile production up -d
+#
+# In production mode, only services with profiles: ['production'] start.
+# The default (no-profile) services are for development only.
+#
+# WARNING: Before deploying to production you MUST change every secret value
+# (POSTGRES_PASSWORD, ADMIN_PASSWORD, APP_SECRET, REDIS_PASSWORD).
+# Leaving defaults in production is a critical security risk.
+# See .env.example for guidance.
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # DEVELOPMENT SERVICES (start with: docker compose up)
+  # ===========================================================================
+
+  # PostgreSQL - dev (port exposed to host for local tools)
+  db:
+    image: postgres:16-alpine
+    container_name: meridian-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: meridian
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-meridian_secret}
+      POSTGRES_DB: meridian
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U meridian -d meridian']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis - dev (port exposed to host, no auth required)
+  redis:
+    image: redis:7-alpine
+    container_name: meridian-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+
+  # App - dev (hot reload, volume mounts, auto-migration)
+  app:
+    build: .
+    container_name: meridian-app
+    restart: unless-stopped
+    ports:
+      - '8000:8000'
+    environment:
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@meridian.blog}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-changeme123}
+      - ADMIN_NAME=${ADMIN_NAME:-Admin}
+      - APP_ENV=development
+      - APP_PORT=8000
+      - APP_DOMAIN=${APP_DOMAIN:-localhost:8000}
+      - APP_SECRET=${APP_SECRET:-your-super-secret-key-min-32-chars-change-this-in-production}
+      - DATABASE_URL=postgres://meridian:${POSTGRES_PASSWORD:-meridian_secret}@db:5432/meridian
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./uploads:/app/uploads
+      - ./frontend:/app/frontend
+      - ./backend:/app/backend
+      - ./shared:/app/shared
+      - ./db:/app/db
+      - ./deno.json:/app/deno.json
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        sleep 3 &&
+        echo 'Running migrations...' &&
+        deno run --allow-all db/migrate.ts &&
+        echo 'Starting dev server with hot reload...' &&
+        deno run --allow-all --watch backend/main.ts
+      "
+
+  # ===========================================================================
+  # PRODUCTION SERVICES (start with: docker compose --profile production up -d)
+  # ===========================================================================
+
+  # PostgreSQL - production (no port exposed to host)
+  db-prod:
+    image: postgres:16-alpine
+    container_name: meridian-db-prod
+    restart: unless-stopped
+    profiles: ['production']
+    environment:
+      POSTGRES_USER: meridian
+      # WARNING: You MUST set POSTGRES_PASSWORD in your .env file!
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: meridian
+    # No ports exposed — only accessible from the internal Docker network
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U meridian -d meridian']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis - production (password required, no port exposed to host)
+  redis-prod:
+    image: redis:7-alpine
+    container_name: meridian-redis-prod
+    restart: unless-stopped
+    profiles: ['production']
+    # WARNING: You MUST set REDIS_PASSWORD in your .env file!
+    command: redis-server --appendonly yes --requirepass "${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}"
+    # No ports exposed — only accessible from the internal Docker network
+    volumes:
+      - redis_data_prod:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # App - production (no hot reload, no source mounts, scoped permissions)
+  app-prod:
+    build: .
+    container_name: meridian-app-prod
+    restart: unless-stopped
+    profiles: ['production']
+    ports:
+      - '${APP_PORT:-8000}:8000'
+    environment:
+      # WARNING: Every value with :? MUST be set in your .env file!
+      - ADMIN_EMAIL=${ADMIN_EMAIL:?Set ADMIN_EMAIL in .env}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
+      - ADMIN_NAME=${ADMIN_NAME:-Admin}
+      - APP_ENV=production
+      - APP_PORT=8000
+      - APP_DOMAIN=${APP_DOMAIN:?Set APP_DOMAIN in .env}
+      - APP_SECRET=${APP_SECRET:?Set APP_SECRET in .env}
+      - DATABASE_URL=postgres://meridian:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db-prod:5432/meridian
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}@redis-prod:6379
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-}
+      - EMAIL_API_KEY=${EMAIL_API_KEY:-}
+      - EMAIL_FROM=${EMAIL_FROM:-}
+    volumes:
+      # Only persist uploads — no source code mounts in production
+      - uploads_data:/app/uploads
+    depends_on:
+      db-prod:
+        condition: service_healthy
+      redis-prod:
+        condition: service_healthy
+    # Uses the Dockerfile CMD (scoped Deno permissions, no --watch).
+    # Migrations are NOT run automatically. Run them before first start:
+    #   docker compose --profile production run --rm app-prod \
+    #     deno run --allow-net --allow-read --allow-env db/migrate.ts
+
+volumes:
+  postgres_data:
+  redis_data:
+  postgres_data_prod:
+  redis_data_prod:
+  uploads_data:

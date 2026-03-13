@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meridian Admin</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    >
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Editor.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/header@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/list@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/quote@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/code@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/delimiter@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/image@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/inline-code@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/marker@latest"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              parchment: '#FAF9F6',
+              linen: '#F2F0EB',
+              ink: '#1A1A1A',
+              muted: '#6B6B6B',
+              crimson: '#C41E3A',
+              forest: '#2D5016',
+              gold: '#B8860B',
+            },
+            fontFamily: {
+              serif: ['Crimson Text', 'Georgia', 'serif'],
+              sans: ['Inter', '-apple-system', 'sans-serif'],
+            },
+            borderRadius: {
+              brutal: '2px',
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      .section {
+        display: none;
+      }
+      .section.active {
+        display: block;
+        animation: fadeIn 200ms ease;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(4px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .nav-item.active::before {
+        content: '';
+        position: absolute;
+        left: -40px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 2px;
+        height: 20px;
+        background: #1a1a1a;
+      }
+      @media (max-width: 768px) {
+        .sidebar {
+          display: none !important;
+        }
+        .main {
+          margin-left: 0 !important;
+        }
+      }
+      /* Editor.js overrides */
+      .codex-editor {
+        font-family: 'Inter', -apple-system, sans-serif;
+      }
+      .ce-block__content {
+        max-width: 100%;
+      }
+      .ce-toolbar__content {
+        max-width: 100%;
+      }
+      .codex-editor__redactor {
+        padding-bottom: 100px !important;
+      }
+      .ce-paragraph {
+        font-size: 17px;
+        line-height: 1.7;
+      }
+      .ce-header {
+        font-family: 'Crimson Text', Georgia, serif;
+      }
+      .ce-code__textarea {
+        font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+        font-size: 14px;
+        background: #f2f0eb;
+        border-radius: 2px;
+      }
+      .cdx-quote__text {
+        font-family: 'Crimson Text', Georgia, serif;
+        font-size: 20px;
+        font-style: italic;
+      }
+      .cdx-quote__caption {
+        font-size: 14px;
+        color: #6b6b6b;
+      }
+    </style>
+  </head>
+  <body class="font-sans text-[15px] leading-relaxed text-ink bg-parchment antialiased">
+    <div class="min-h-screen">
+      <!-- Sidebar -->
+      <aside
+        class="sidebar fixed left-0 top-0 w-60 h-screen bg-linen border-r border-black/[0.06] p-10 flex flex-col overflow-y-auto"
+      >
+        <div class="mb-16">
+          <div class="flex items-center gap-2">
+            <span
+              class="inline-flex items-center justify-center w-7 h-7 bg-ink text-parchment font-serif font-semibold text-base rounded-brutal leading-none"
+            >M</span>
+            <h1 class="font-serif text-[28px] font-semibold tracking-tight mb-1">Meridian</h1>
+          </div>
+          <span class="text-[11px] uppercase tracking-[0.15em] text-muted">Admin Dashboard</span>
+        </div>
+
+        <div class="mb-10">
+          <div class="text-[10px] uppercase tracking-[0.15em] text-muted mb-2 pl-2">Content</div>
+          <nav>
+            <a
+              class="nav-item active block px-2 py-2.5 text-muted text-sm rounded-brutal transition-all duration-150 cursor-pointer hover:text-ink hover:bg-black/[0.03] no-underline relative"
+              data-section="dashboard"
+              onclick="showSection('dashboard', this)"
+            >Dashboard</a>
+            <a
+              class="nav-item block px-2 py-2.5 text-muted text-sm rounded-brutal transition-all duration-150 cursor-pointer hover:text-ink hover:bg-black/[0.03] no-underline relative"
+              data-section="posts"
+              onclick="showSection('posts', this)"
+            >Posts</a>
+            <a
+              class="nav-item block px-2 py-2.5 text-muted text-sm rounded-brutal transition-all duration-150 cursor-pointer hover:text-ink hover:bg-black/[0.03] no-underline relative"
+              data-section="new-post"
+              onclick="editingPostId = null; showSection('new-post', this)"
+            >New Post</a>
+            <a
+              class="nav-item block px-2 py-2.5 text-muted text-sm rounded-brutal transition-all duration-150 cursor-pointer hover:text-ink hover:bg-black/[0.03] no-underline relative"
+              data-section="pages"
+              onclick="showSection('pages', this)"
+            >Pages</a>
+            <a
+              class="nav-item block px-2 py-2.5 text-muted text-sm rounded-brutal transition-all duration-150 cursor-pointer hover:text-ink hover:bg-black/[0.03] no-underline relative"
+              data-section="newsletters"
+              onclick="showSection('newsletters', this)"
+            >Newsletters</a>
+          </nav>
+        </div>
+
+        <div class="mb-10">
+          <div class="text-[10px] uppercase tracking-[0.15em] text-muted mb-2 pl-2">Growth</div>
+          <nav>
+            <a
+              class="nav-item block px-2 py-2.5 text-muted text-sm rounded-brutal transition-all duration-150 cursor-pointer hover:text-ink hover:bg-black/[0.03] no-underline relative"
+              data-section="members"
+              onclick="showSection('members', this)"
+            >Members</a>
+            <a
+              class="nav-item block px-2 py-2.5 text-muted text-sm rounded-brutal transition-all duration-150 cursor-pointer hover:text-ink hover:bg-black/[0.03] no-underline relative"
+              data-section="analytics"
+              onclick="showSection('analytics', this)"
+            >Analytics</a>
+          </nav>
+        </div>
+
+        <div class="mb-10">
+          <div class="text-[10px] uppercase tracking-[0.15em] text-muted mb-2 pl-2">Configure</div>
+          <nav>
+            <a
+              class="nav-item block px-2 py-2.5 text-muted text-sm rounded-brutal transition-all duration-150 cursor-pointer hover:text-ink hover:bg-black/[0.03] no-underline relative"
+              data-section="settings"
+              onclick="showSection('settings', this)"
+            >Settings</a>
+          </nav>
+        </div>
+
+        <div class="mt-auto pt-10 border-t border-black/[0.08]">
+          <div class="flex items-center gap-3 p-2">
+            <div
+              class="w-9 h-9 rounded-full bg-ink text-parchment flex items-center justify-center font-semibold text-[13px] shrink-0"
+            >
+              A
+            </div>
+            <div>
+              <div class="font-medium text-sm" id="userName">Admin</div>
+              <div class="text-xs text-muted">Owner</div>
+            </div>
+          </div>
+          <button
+            class="w-full mt-3 border border-black/15 text-muted px-4 py-2 text-[13px] font-medium rounded-brutal transition-all duration-150 hover:border-ink hover:text-ink cursor-pointer bg-transparent"
+            onclick="logout()"
+          >
+            Sign Out
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main ml-60 py-16 px-16 min-w-0">
+        <!-- Dashboard -->
+        <div id="dashboard-section" class="section active">
+          <div
+            class="flex justify-between items-center mb-16 pb-10 border-b border-black/[0.06] gap-4"
+          >
+            <h2
+              class="font-serif text-[42px] font-normal leading-tight tracking-tight whitespace-nowrap"
+            >
+              Dashboard
+            </h2>
+            <div class="flex items-center gap-3 shrink-0">
+              <button
+                class="bg-ink text-parchment px-6 py-3 text-sm font-medium rounded-brutal transition-all duration-150 hover:-translate-y-px hover:shadow-md cursor-pointer inline-flex items-center gap-2"
+                onclick="showSection('new-post', document.querySelector('[data-section=new-post]'))"
+              >
+                New Post
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-6 mb-16 max-md:grid-cols-1">
+            <div class="bg-white border border-black/[0.06] rounded-brutal p-8">
+              <div class="text-[11px] uppercase tracking-[0.1em] text-muted mb-2">Total Posts</div>
+              <div class="font-serif text-4xl font-normal leading-none mb-2" id="statPosts">
+                &mdash;
+              </div>
+              <div class="text-[13px] text-muted">Published content</div>
+            </div>
+            <div class="bg-white border border-black/[0.06] rounded-brutal p-8">
+              <div class="text-[11px] uppercase tracking-[0.1em] text-muted mb-2">Members</div>
+              <div class="font-serif text-4xl font-normal leading-none mb-2" id="statMembers">
+                &mdash;
+              </div>
+              <div class="text-[13px] text-muted">Newsletter subscribers</div>
+            </div>
+            <div class="bg-white border border-black/[0.06] rounded-brutal p-8">
+              <div class="text-[11px] uppercase tracking-[0.1em] text-muted mb-2">Views</div>
+              <div class="font-serif text-4xl font-normal leading-none mb-2" id="statViews">
+                &mdash;
+              </div>
+              <div class="text-[13px] text-muted">This month</div>
+            </div>
+          </div>
+
+          <div
+            class="bg-white border border-black/[0.06] rounded-brutal p-8 transition-colors hover:border-black/[0.12]"
+          >
+            <div class="flex justify-between items-center mb-6">
+              <h3 class="font-serif text-xl font-semibold">Recent Posts</h3>
+              <button
+                class="border border-black/15 text-muted px-4 py-2 text-[13px] font-medium rounded-brutal transition-all duration-150 hover:border-ink hover:text-ink cursor-pointer bg-transparent inline-flex items-center gap-2 hover:-translate-y-px"
+                onclick="showSection('posts', document.querySelector('[data-section=posts]'))"
+              >
+                View All
+              </button>
+            </div>
+            <div id="recentPosts">
+              <div class="text-center py-16 px-10 text-muted">
+                <h3 class="font-serif text-2xl font-normal mb-2 text-ink">No posts yet</h3>
+                <p class="mb-10">Start writing your first post to get started.</p>
+                <button
+                  class="bg-ink text-parchment px-6 py-3 text-sm font-medium rounded-brutal transition-all duration-150 hover:-translate-y-px hover:shadow-md cursor-pointer inline-flex items-center gap-2"
+                  onclick="showSection('new-post', document.querySelector('[data-section=new-post]'))"
+                >
+                  Create Post
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Posts List -->
+        <div id="posts-section" class="section">
+          <div
+            class="flex justify-between items-center mb-16 pb-10 border-b border-black/[0.06] gap-4"
+          >
+            <h2
+              class="font-serif text-[42px] font-normal leading-tight tracking-tight whitespace-nowrap"
+            >
+              Posts
+            </h2>
+            <div class="flex items-center gap-3 shrink-0">
+              <button
+                class="bg-ink text-parchment px-6 py-3 text-sm font-medium rounded-brutal transition-all duration-150 hover:-translate-y-px hover:shadow-md cursor-pointer inline-flex items-center gap-2"
+                onclick="showSection('new-post', document.querySelector('[data-section=new-post]'))"
+              >
+                New Post
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white border border-black/[0.06] rounded-brutal overflow-hidden">
+            <table class="w-full border-collapse text-sm">
+              <thead>
+                <tr>
+                  <th
+                    class="text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[55%]"
+                  >
+                    Title
+                  </th>
+                  <th
+                    class="text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[15%]"
+                  >
+                    Status
+                  </th>
+                  <th
+                    class="text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[20%]"
+                  >
+                    Date
+                  </th>
+                  <th
+                    class="text-right px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[10%]"
+                  >
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="postsTable">
+                <tr>
+                  <td colspan="4">
+                    <div class="text-center py-16 px-10 text-muted">No posts yet</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- New Post - The Composer -->
+        <div id="new-post-section" class="section">
+          <div
+            class="flex justify-between items-center mb-16 pb-10 border-b border-black/[0.06] gap-4"
+          >
+            <h2
+              class="font-serif text-[42px] font-normal leading-tight tracking-tight whitespace-nowrap"
+            >
+              New Post
+            </h2>
+            <div class="flex items-center gap-3 shrink-0">
+              <button
+                class="border border-black/15 text-muted px-6 py-3 text-sm font-medium rounded-brutal transition-all duration-150 hover:border-ink hover:text-ink cursor-pointer bg-transparent inline-flex items-center gap-2 hover:-translate-y-px"
+                onclick="saveDraft()"
+              >
+                Save Draft
+              </button>
+              <button
+                class="bg-ink text-parchment px-6 py-3 text-sm font-medium rounded-brutal transition-all duration-150 hover:-translate-y-px hover:shadow-md cursor-pointer inline-flex items-center gap-2"
+                onclick="publishPost()"
+              >
+                Publish
+              </button>
+            </div>
+          </div>
+
+          <div class="max-w-[720px]">
+            <div
+              class="bg-white border border-black/[0.06] rounded-brutal p-16 mb-10 min-h-[400px]"
+            >
+              <input
+                type="text"
+                class="w-full font-serif text-[42px] font-normal border-none outline-none mb-10 bg-transparent text-ink leading-snug placeholder:text-muted/50"
+                placeholder="Post title"
+                id="postTitle"
+              >
+
+              <div id="editorjs"></div>
+            </div>
+
+            <div
+              class="bg-white border border-black/[0.06] rounded-brutal p-8 transition-colors hover:border-black/[0.12]"
+            >
+              <h3 class="font-serif text-xl font-semibold mb-10">Post Settings</h3>
+
+              <div class="mb-10">
+                <label class="block text-[11px] uppercase tracking-[0.1em] text-muted mb-2"
+                >Excerpt</label>
+                <textarea
+                  class="w-full py-3 text-[15px] bg-transparent border-0 border-b-2 border-linen outline-none transition-colors duration-200 font-sans text-ink focus:border-ink min-h-[100px] resize-y"
+                  id="postExcerpt"
+                  placeholder="Brief description of this post..."
+                  rows="3"
+                ></textarea>
+              </div>
+
+              <div class="mb-10">
+                <label class="block text-[11px] uppercase tracking-[0.1em] text-muted mb-2"
+                >Tags</label>
+                <input
+                  type="text"
+                  class="w-full py-3 text-[15px] bg-transparent border-0 border-b-2 border-linen outline-none transition-colors duration-200 font-sans text-ink focus:border-ink"
+                  id="postTags"
+                  placeholder="technology, writing, news"
+                >
+              </div>
+
+              <div class="mb-10">
+                <label class="block text-[11px] uppercase tracking-[0.1em] text-muted mb-2"
+                >Cover Image URL</label>
+                <input
+                  type="url"
+                  class="w-full py-3 text-[15px] bg-transparent border-0 border-b-2 border-linen outline-none transition-colors duration-200 font-sans text-ink focus:border-ink"
+                  id="postCover"
+                  placeholder="https://..."
+                >
+              </div>
+
+              <label class="flex items-center gap-2 cursor-pointer text-sm">
+                <input type="checkbox" id="postFeatured" class="w-[18px] h-[18px] accent-ink">
+                <span>Feature this post</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Members -->
+        <div id="members-section" class="section">
+          <div
+            class="flex justify-between items-center mb-16 pb-10 border-b border-black/[0.06] gap-4"
+          >
+            <h2
+              class="font-serif text-[42px] font-normal leading-tight tracking-tight whitespace-nowrap"
+            >
+              Members
+            </h2>
+          </div>
+
+          <div class="bg-white border border-black/[0.06] rounded-brutal overflow-hidden">
+            <table class="w-full border-collapse text-sm">
+              <thead>
+                <tr>
+                  <th
+                    class="text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[45%]"
+                  >
+                    Email
+                  </th>
+                  <th
+                    class="text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[20%]"
+                  >
+                    Tier
+                  </th>
+                  <th
+                    class="text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[20%]"
+                  >
+                    Status
+                  </th>
+                  <th
+                    class="text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[15%]"
+                  >
+                    Joined
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="membersTable">
+                <tr>
+                  <td colspan="4">
+                    <div class="text-center py-16 px-10 text-muted">No members yet</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Settings -->
+        <div id="settings-section" class="section">
+          <div
+            class="flex justify-between items-center mb-16 pb-10 border-b border-black/[0.06] gap-4"
+          >
+            <h2
+              class="font-serif text-[42px] font-normal leading-tight tracking-tight whitespace-nowrap"
+            >
+              Settings
+            </h2>
+          </div>
+
+          <div class="max-w-[600px]">
+            <h3 class="font-serif text-2xl font-normal mb-10 pb-6 border-b border-black/[0.06]">
+              Site Information
+            </h3>
+
+            <div class="mb-10">
+              <label class="block text-[11px] uppercase tracking-[0.1em] text-muted mb-2"
+              >Site Title</label>
+              <input
+                type="text"
+                class="w-full py-3 text-[15px] bg-transparent border-0 border-b-2 border-linen outline-none transition-colors duration-200 font-sans text-ink focus:border-ink"
+                id="settingsTitle"
+                value="Meridian"
+              >
+            </div>
+
+            <div class="mb-10">
+              <label class="block text-[11px] uppercase tracking-[0.1em] text-muted mb-2"
+              >Description</label>
+              <textarea
+                class="w-full py-3 text-[15px] bg-transparent border-0 border-b-2 border-linen outline-none transition-colors duration-200 font-sans text-ink focus:border-ink min-h-[100px] resize-y"
+                id="settingsDescription"
+                rows="3"
+              >A modern publishing platform</textarea>
+            </div>
+
+            <div class="mb-10">
+              <label class="block text-[11px] uppercase tracking-[0.1em] text-muted mb-2"
+              >Accent Color</label>
+              <input
+                type="text"
+                class="w-full py-3 text-[15px] bg-transparent border-0 border-b-2 border-linen outline-none transition-colors duration-200 font-sans text-ink focus:border-ink"
+                id="settingsAccentColor"
+                value="#C41E3A"
+                placeholder="#C41E3A"
+              >
+            </div>
+
+            <button
+              class="bg-ink text-parchment px-6 py-3 text-sm font-medium rounded-brutal transition-all duration-150 hover:-translate-y-px hover:shadow-md cursor-pointer inline-flex items-center gap-2"
+              onclick="saveSettings()"
+            >
+              Save Changes
+            </button>
+          </div>
+        </div>
+
+        <!-- Pages -->
+        <div id="pages-section" class="section">
+          <div
+            class="flex justify-between items-center mb-16 pb-10 border-b border-black/[0.06] gap-4"
+          >
+            <h2
+              class="font-serif text-[42px] font-normal leading-tight tracking-tight whitespace-nowrap"
+            >
+              Pages
+            </h2>
+            <button
+              class="bg-ink text-parchment px-6 py-3 text-sm font-medium rounded-brutal transition-all duration-150 hover:-translate-y-px hover:shadow-md cursor-pointer inline-flex items-center gap-2"
+              onclick="showPageEditor()"
+            >
+              New Page
+            </button>
+          </div>
+
+          <!-- Page editor (hidden by default) -->
+          <div id="pageEditor" class="hidden mb-10">
+            <div class="bg-white border border-black/[0.06] rounded-brutal p-8 max-w-[720px]">
+              <h3 class="font-serif text-xl font-semibold mb-8" id="pageEditorTitle">New Page</h3>
+              <div class="mb-8">
+                <label class="block text-[11px] uppercase tracking-[0.1em] text-muted mb-2"
+                >Title</label>
+                <input
+                  type="text"
+                  id="pageTitle"
+                  class="w-full py-3 text-[15px] bg-transparent border-0 border-b-2 border-linen outline-none transition-colors duration-200 font-sans text-ink focus:border-ink"
+                  placeholder="About"
+                >
+              </div>
+              <div class="mb-8">
+                <label class="block text-[11px] uppercase tracking-[0.1em] text-muted mb-2"
+                >Slug</label>
+                <input
+                  type="text"
+                  id="pageSlug"
+                  class="w-full py-3 text-[15px] bg-transparent border-0 border-b-2 border-linen outline-none transition-colors duration-200 font-sans text-ink focus:border-ink"
+                  placeholder="about (auto-generated from title if empty)"
+                >
+              </div>
+              <div class="mb-8">
+                <label class="block text-[11px] uppercase tracking-[0.1em] text-muted mb-2"
+                >Content</label>
+                <textarea
+                  id="pageContent"
+                  class="w-full py-3 text-[15px] bg-transparent border-0 border-b-2 border-linen outline-none transition-colors duration-200 font-sans text-ink focus:border-ink min-h-[300px] resize-y"
+                  rows="12"
+                  placeholder="Write your page content..."
+                ></textarea>
+              </div>
+              <div class="flex gap-3">
+                <button
+                  class="bg-ink text-parchment px-6 py-3 text-sm font-medium rounded-brutal transition-all duration-150 hover:-translate-y-px hover:shadow-md cursor-pointer"
+                  onclick="savePage('published')"
+                >
+                  Publish
+                </button>
+                <button
+                  class="border border-black/15 text-muted px-6 py-3 text-sm font-medium rounded-brutal transition-all duration-150 hover:border-ink hover:text-ink cursor-pointer bg-transparent"
+                  onclick="savePage('draft')"
+                >
+                  Save Draft
+                </button>
+                <button
+                  class="border border-black/15 text-muted px-4 py-3 text-sm font-medium rounded-brutal transition-all duration-150 hover:border-ink hover:text-ink cursor-pointer bg-transparent"
+                  onclick="hidePageEditor()"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white border border-black/[0.06] rounded-brutal overflow-hidden">
+            <table class="w-full border-collapse text-sm">
+              <thead>
+                <tr>
+                  <th
+                    class="text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[40%]"
+                  >
+                    Title
+                  </th>
+                  <th
+                    class="text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[20%]"
+                  >
+                    Slug
+                  </th>
+                  <th
+                    class="text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[15%]"
+                  >
+                    Status
+                  </th>
+                  <th
+                    class="text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[15%]"
+                  >
+                    Updated
+                  </th>
+                  <th
+                    class="text-right px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[10%]"
+                  >
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="pagesTable">
+                <tr>
+                  <td colspan="5">
+                    <div class="text-center py-16 px-10 text-muted">No pages yet</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Newsletters -->
+        <div id="newsletters-section" class="section">
+          <div
+            class="flex justify-between items-center mb-16 pb-10 border-b border-black/[0.06] gap-4"
+          >
+            <h2
+              class="font-serif text-[42px] font-normal leading-tight tracking-tight whitespace-nowrap"
+            >
+              Newsletters
+            </h2>
+            <button
+              class="bg-ink text-parchment px-6 py-3 text-sm font-medium rounded-brutal transition-all duration-150 hover:-translate-y-px hover:shadow-md cursor-pointer inline-flex items-center gap-2"
+              onclick="showNewsletter()"
+            >
+              New Newsletter
+            </button>
+          </div>
+
+          <!-- Newsletter composer (hidden by default) -->
+          <div id="newsletterComposer" class="hidden mb-10">
+            <div class="bg-white border border-black/[0.06] rounded-brutal p-8 max-w-[720px]">
+              <h3 class="font-serif text-xl font-semibold mb-8">Compose Newsletter</h3>
+              <div class="mb-8">
+                <label class="block text-[11px] uppercase tracking-[0.1em] text-muted mb-2"
+                >Subject</label>
+                <input
+                  type="text"
+                  id="nlSubject"
+                  class="w-full py-3 text-[15px] bg-transparent border-0 border-b-2 border-linen outline-none transition-colors duration-200 font-sans text-ink focus:border-ink"
+                  placeholder="Newsletter subject line..."
+                >
+              </div>
+              <div class="mb-8">
+                <label class="block text-[11px] uppercase tracking-[0.1em] text-muted mb-2"
+                >Content</label>
+                <textarea
+                  id="nlContent"
+                  class="w-full py-3 text-[15px] bg-transparent border-0 border-b-2 border-linen outline-none transition-colors duration-200 font-sans text-ink focus:border-ink min-h-[200px] resize-y"
+                  rows="8"
+                  placeholder="Write your newsletter..."
+                ></textarea>
+              </div>
+              <div class="flex gap-3">
+                <button
+                  class="bg-ink text-parchment px-6 py-3 text-sm font-medium rounded-brutal transition-all duration-150 hover:-translate-y-px hover:shadow-md cursor-pointer"
+                  onclick="createNewsletter('send')"
+                >
+                  Send Now
+                </button>
+                <button
+                  class="border border-black/15 text-muted px-6 py-3 text-sm font-medium rounded-brutal transition-all duration-150 hover:border-ink hover:text-ink cursor-pointer bg-transparent"
+                  onclick="createNewsletter('draft')"
+                >
+                  Save Draft
+                </button>
+                <button
+                  class="border border-black/15 text-muted px-4 py-3 text-sm font-medium rounded-brutal transition-all duration-150 hover:border-ink hover:text-ink cursor-pointer bg-transparent"
+                  onclick="hideNewsletter()"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white border border-black/[0.06] rounded-brutal overflow-hidden">
+            <table class="w-full border-collapse text-sm">
+              <thead>
+                <tr>
+                  <th
+                    class="text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[45%]"
+                  >
+                    Subject
+                  </th>
+                  <th
+                    class="text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[15%]"
+                  >
+                    Status
+                  </th>
+                  <th
+                    class="text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[15%]"
+                  >
+                    Recipients
+                  </th>
+                  <th
+                    class="text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[15%]"
+                  >
+                    Date
+                  </th>
+                  <th
+                    class="text-right px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[10%]"
+                  >
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="newslettersTable">
+                <tr>
+                  <td colspan="5">
+                    <div class="text-center py-16 px-10 text-muted">No newsletters yet</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Analytics -->
+        <div id="analytics-section" class="section">
+          <div
+            class="flex justify-between items-center mb-16 pb-10 border-b border-black/[0.06] gap-4"
+          >
+            <h2
+              class="font-serif text-[42px] font-normal leading-tight tracking-tight whitespace-nowrap"
+            >
+              Analytics
+            </h2>
+            <span class="text-sm text-muted">Last 30 days</span>
+          </div>
+
+          <div class="grid grid-cols-4 gap-6 mb-10 max-md:grid-cols-2">
+            <div class="bg-white border border-black/[0.06] rounded-brutal p-6">
+              <div class="text-[11px] uppercase tracking-[0.1em] text-muted mb-2">Page Views</div>
+              <div class="font-serif text-3xl font-normal leading-none" id="analyticsViews">
+                &mdash;
+              </div>
+            </div>
+            <div class="bg-white border border-black/[0.06] rounded-brutal p-6">
+              <div class="text-[11px] uppercase tracking-[0.1em] text-muted mb-2">Visitors</div>
+              <div class="font-serif text-3xl font-normal leading-none" id="analyticsVisitors">
+                &mdash;
+              </div>
+            </div>
+            <div class="bg-white border border-black/[0.06] rounded-brutal p-6">
+              <div class="text-[11px] uppercase tracking-[0.1em] text-muted mb-2">New Members</div>
+              <div class="font-serif text-3xl font-normal leading-none" id="analyticsNewMembers">
+                &mdash;
+              </div>
+            </div>
+            <div class="bg-white border border-black/[0.06] rounded-brutal p-6">
+              <div class="text-[11px] uppercase tracking-[0.1em] text-muted mb-2">
+                Total Members
+              </div>
+              <div class="font-serif text-3xl font-normal leading-none" id="analyticsTotalMembers">
+                &mdash;
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-6 max-md:grid-cols-1">
+            <div class="bg-white border border-black/[0.06] rounded-brutal p-8">
+              <h3 class="font-serif text-xl font-semibold mb-6">Top Posts</h3>
+              <div id="analyticsTopPosts" class="text-sm text-muted">No data yet</div>
+            </div>
+            <div class="bg-white border border-black/[0.06] rounded-brutal p-8">
+              <h3 class="font-serif text-xl font-semibold mb-6">Member Breakdown</h3>
+              <div id="analyticsMemberBreakdown" class="text-sm text-muted">No data yet</div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="/toast.js"></script>
+    <script>
+      // Auth
+      const token = localStorage.getItem('meridian_token');
+      if (!token) window.location.href = '/login';
+
+      async function api(endpoint, options = {}) {
+        const res = await fetch('/api' + endpoint, {
+          ...options,
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json',
+            ...options.headers,
+          },
+        });
+        return res.json();
+      }
+
+      // Navigation
+      function showSection(name, el) {
+        document.querySelectorAll('.section').forEach(function (s) {
+          s.classList.remove('active');
+        });
+        document.querySelectorAll('.nav-item').forEach(function (n) {
+          n.classList.remove('active');
+          n.classList.remove('text-ink');
+          n.classList.remove('font-medium');
+        });
+
+        var section = document.getElementById(name + '-section');
+        if (section) section.classList.add('active');
+        if (el) {
+          el.classList.add('active');
+          el.classList.add('text-ink');
+          el.classList.add('font-medium');
+        }
+
+        if (name === 'new-post' && !editingPostId) {
+          clearEditor();
+          var header = document.querySelector('#new-post-section .font-serif');
+          if (header) header.textContent = 'New Post';
+        }
+        if (name === 'new-post' && !editor) {
+          initEditor();
+        }
+
+        if (name === 'dashboard') loadDashboard();
+        if (name === 'posts') loadPosts();
+        if (name === 'members') loadMembers();
+        if (name === 'pages') loadPages();
+        if (name === 'newsletters') loadNewsletters();
+        if (name === 'analytics') loadAnalytics();
+        if (name === 'settings') loadSettings();
+      }
+
+      // Load dashboard
+      async function loadDashboard() {
+        try {
+          var postsRes = await api('/posts');
+          var membersRes = await api('/members');
+
+          var postCount = postsRes.pagination
+            ? postsRes.pagination.total
+            : (postsRes.data ? postsRes.data.length : 0);
+          var memberCount = membersRes.pagination
+            ? membersRes.pagination.total
+            : (membersRes.data ? membersRes.data.length : 0);
+
+          document.getElementById('statPosts').textContent = postCount;
+          document.getElementById('statMembers').textContent = memberCount;
+
+          var recent = (postsRes.data || []).slice(0, 5);
+          var recentEl = document.getElementById('recentPosts');
+
+          if (recent.length) {
+            recentEl.innerHTML =
+              '<table class="w-full border-collapse text-sm"><thead><tr>' +
+              '<th class="text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[55%]">Title</th>' +
+              '<th class="text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[20%]">Status</th>' +
+              '<th class="text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] text-muted font-medium border-b border-black/[0.08] w-[25%]">Date</th>' +
+              '</tr></thead><tbody>' +
+              recent.map(function (p) {
+                return '<tr class="hover:bg-linen">' +
+                  '<td class="px-4 py-4 border-b border-black/[0.04] align-middle"><span class="font-medium text-ink">' +
+                  escapeHtml(p.title) + '</span></td>' +
+                  '<td class="px-4 py-4 border-b border-black/[0.04] align-middle"><span class="inline-block py-1 px-2.5 text-[11px] uppercase tracking-[0.05em] rounded-brutal font-medium ' +
+                  getBadgeClasses(p.status) + '">' + p.status + '</span></td>' +
+                  '<td class="px-4 py-4 border-b border-black/[0.04] align-middle">' +
+                  new Date(p.created_at || p.createdAt).toLocaleDateString() + '</td>' +
+                  '</tr>';
+              }).join('') +
+              '</tbody></table>';
+          } else {
+            recentEl.innerHTML = '<div class="text-center py-16 px-10 text-muted">' +
+              '<h3 class="font-serif text-2xl font-normal mb-2 text-ink">No posts yet</h3>' +
+              '<p class="mb-10">Start writing your first post to get started.</p>' +
+              '<button class="bg-ink text-parchment px-6 py-3 text-sm font-medium rounded-brutal transition-all duration-150 hover:-translate-y-px hover:shadow-md cursor-pointer inline-flex items-center gap-2" onclick="showSection(\'new-post\', document.querySelector(\'[data-section=new-post]\'))">Create Post</button>' +
+              '</div>';
+          }
+        } catch (err) {
+          console.error('Failed to load dashboard:', err);
+        }
+      }
+
+      function getBadgeClasses(status) {
+        if (status === 'published') return 'bg-forest/10 text-forest';
+        if (status === 'scheduled') return 'bg-gold/10 text-gold';
+        return 'bg-black/[0.04] text-muted';
+      }
+
+      // Load posts
+      async function loadPosts() {
+        try {
+          var res = await api('/posts?status=all&perPage=50');
+          var posts = res.data || [];
+
+          var tbody = document.getElementById('postsTable');
+          if (posts.length) {
+            tbody.innerHTML = posts.map(function (p) {
+              var date = new Date(
+                p.published_at || p.publishedAt || p.created_at || p.createdAt,
+              );
+              return '<tr class="hover:bg-linen">' +
+                '<td class="px-4 py-4 border-b border-black/[0.04] align-middle">' +
+                '<div class="font-medium text-ink">' + escapeHtml(p.title) + '</div>' +
+                (p.excerpt
+                  ? '<div class="text-[13px] text-muted mt-1">' +
+                    escapeHtml(p.excerpt.slice(0, 80)) + '</div>'
+                  : '') +
+                '</td>' +
+                '<td class="px-4 py-4 border-b border-black/[0.04] align-middle"><span class="inline-block py-1 px-2.5 text-[11px] uppercase tracking-[0.05em] rounded-brutal font-medium ' +
+                getBadgeClasses(p.status) + '">' + p.status + '</span></td>' +
+                '<td class="px-4 py-4 border-b border-black/[0.04] align-middle">' +
+                date.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                }) + '</td>' +
+                '<td class="px-4 py-4 border-b border-black/[0.04] align-middle text-right"><div class="flex gap-2 justify-end">' +
+                '<button class="border border-black/15 text-muted px-4 py-2 text-[13px] font-medium rounded-brutal transition-all duration-150 hover:border-ink hover:text-ink cursor-pointer bg-transparent" onclick="editPost(\'' +
+                p.id + '\')">Edit</button>' +
+                '<button class="border border-crimson text-crimson px-4 py-2 text-[13px] font-medium rounded-brutal transition-all duration-150 hover:bg-crimson hover:text-white cursor-pointer bg-transparent" onclick="deletePost(\'' +
+                p.id + '\')">Delete</button>' +
+                '</div></td>' +
+                '</tr>';
+            }).join('');
+          } else {
+            tbody.innerHTML =
+              '<tr><td colspan="4"><div class="text-center py-16 px-10 text-muted">' +
+              '<h3 class="font-serif text-2xl font-normal mb-2 text-ink">No posts yet</h3>' +
+              '<p class="mb-10">Create your first post to get started.</p>' +
+              '<button class="bg-ink text-parchment px-6 py-3 text-sm font-medium rounded-brutal transition-all duration-150 hover:-translate-y-px hover:shadow-md cursor-pointer inline-flex items-center gap-2" onclick="showSection(\'new-post\', document.querySelector(\'[data-section=new-post]\'))">Create Post</button>' +
+              '</div></td></tr>';
+          }
+        } catch (err) {
+          console.error('Failed to load posts:', err);
+        }
+      }
+
+      // Load members
+      async function loadMembers() {
+        try {
+          var res = await api('/members');
+          var members = res.data || [];
+
+          var tbody = document.getElementById('membersTable');
+          if (members.length) {
+            tbody.innerHTML = members.map(function (m) {
+              return '<tr class="hover:bg-linen">' +
+                '<td class="px-4 py-4 border-b border-black/[0.04] align-middle">' +
+                escapeHtml(m.email) + '</td>' +
+                '<td class="px-4 py-4 border-b border-black/[0.04] align-middle"><span class="inline-block py-1 px-2.5 text-[11px] uppercase tracking-[0.05em] rounded-brutal font-medium bg-black/[0.04] text-muted">' +
+                m.tier + '</span></td>' +
+                '<td class="px-4 py-4 border-b border-black/[0.04] align-middle"><span class="inline-block py-1 px-2.5 text-[11px] uppercase tracking-[0.05em] rounded-brutal font-medium ' +
+                (m.status === 'active'
+                  ? 'bg-forest/10 text-forest'
+                  : 'bg-black/[0.04] text-muted') +
+                '">' + m.status + '</span></td>' +
+                '<td class="px-4 py-4 border-b border-black/[0.04] align-middle">' +
+                new Date(m.created_at || m.createdAt).toLocaleDateString() + '</td>' +
+                '</tr>';
+            }).join('');
+          } else {
+            tbody.innerHTML =
+              '<tr><td colspan="4"><div class="text-center py-16 px-10 text-muted">No members yet</div></td></tr>';
+          }
+        } catch (err) {
+          console.error('Failed to load members:', err);
+        }
+      }
+
+      // Editor.js
+      var editor = null;
+      var editingPostId = null;
+
+      function initEditor(data) {
+        if (editor) {
+          editor.destroy();
+          editor = null;
+        }
+        editor = new EditorJS({
+          holder: 'editorjs',
+          placeholder: 'Start writing your story...',
+          data: data || { blocks: [] },
+          tools: {
+            header: {
+              class: Header,
+              config: { levels: [2, 3, 4], defaultLevel: 2 },
+              shortcut: 'CMD+SHIFT+H',
+            },
+            list: {
+              class: EditorjsList,
+              inlineToolbar: true,
+            },
+            quote: {
+              class: Quote,
+              shortcut: 'CMD+SHIFT+O',
+            },
+            code: CodeTool,
+            delimiter: Delimiter,
+            image: {
+              class: ImageTool,
+              config: {
+                uploader: {
+                  uploadByFile: function (file) {
+                    var formData = new FormData();
+                    formData.append('file', file);
+                    return fetch('/api/upload/image', {
+                      method: 'POST',
+                      headers: { 'Authorization': 'Bearer ' + token },
+                      body: formData,
+                    })
+                      .then(function (res) {
+                        return res.json();
+                      })
+                      .then(function (res) {
+                        if (res.success) {
+                          return { success: 1, file: { url: res.data.url } };
+                        }
+                        return { success: 0 };
+                      });
+                  },
+                  uploadByUrl: function (url) {
+                    return Promise.resolve({ success: 1, file: { url: url } });
+                  },
+                },
+              },
+            },
+            inlineCode: InlineCode,
+            marker: Marker,
+          },
+        });
+      }
+
+      // Convert Editor.js blocks to Meridian ContentBlock format
+      function editorToContentBlocks(editorData) {
+        return editorData.blocks.map(function (block) {
+          var id = block.id || String(Date.now() + Math.random());
+          switch (block.type) {
+            case 'paragraph':
+              return { id: id, type: 'text', props: {}, content: block.data.text || '' };
+            case 'header':
+              return {
+                id: id,
+                type: 'heading',
+                props: { level: block.data.level || 2 },
+                content: block.data.text || '',
+              };
+            case 'quote':
+              return {
+                id: id,
+                type: 'quote',
+                props: { caption: block.data.caption || '' },
+                content: block.data.text || '',
+              };
+            case 'code':
+              return { id: id, type: 'code', props: {}, content: block.data.code || '' };
+            case 'delimiter':
+              return { id: id, type: 'divider', props: {}, content: null };
+            case 'image':
+              return {
+                id: id,
+                type: 'image',
+                props: {
+                  url: block.data.file ? block.data.file.url : '',
+                  alt: block.data.caption || '',
+                  caption: block.data.caption || '',
+                  withBorder: block.data.withBorder,
+                  stretched: block.data.stretched,
+                  withBackground: block.data.withBackground,
+                },
+                content: null,
+              };
+            case 'list':
+              return {
+                id: id,
+                type: 'html',
+                props: {},
+                content: renderListHtml(block.data),
+              };
+            default:
+              return { id: id, type: 'text', props: {}, content: block.data.text || '' };
+          }
+        });
+      }
+
+      function renderListHtml(data) {
+        var tag = data.style === 'ordered' ? 'ol' : 'ul';
+        var items = (data.items || []).map(function (item) {
+          var text = typeof item === 'string' ? item : (item.content || item.text || '');
+          return '<li>' + text + '</li>';
+        }).join('');
+        return '<' + tag + '>' + items + '</' + tag + '>';
+      }
+
+      // Convert Meridian ContentBlock format to Editor.js data
+      function contentBlocksToEditor(blocks) {
+        if (!blocks || !blocks.length) return { blocks: [] };
+        return {
+          blocks: blocks.map(function (block) {
+            switch (block.type) {
+              case 'text':
+                return { type: 'paragraph', data: { text: block.content || '' } };
+              case 'heading':
+                return {
+                  type: 'header',
+                  data: {
+                    text: block.content || '',
+                    level: (block.props && block.props.level) || 2,
+                  },
+                };
+              case 'quote':
+                return {
+                  type: 'quote',
+                  data: {
+                    text: block.content || '',
+                    caption: (block.props && block.props.caption) || '',
+                  },
+                };
+              case 'code':
+                return { type: 'code', data: { code: block.content || '' } };
+              case 'divider':
+                return { type: 'delimiter', data: {} };
+              case 'image':
+                return {
+                  type: 'image',
+                  data: {
+                    file: { url: (block.props && block.props.url) || '' },
+                    caption: (block.props && (block.props.caption || block.props.alt)) ||
+                      '',
+                    withBorder: (block.props && block.props.withBorder) || false,
+                    stretched: (block.props && block.props.stretched) || false,
+                    withBackground: (block.props && block.props.withBackground) || false,
+                  },
+                };
+              default:
+                return { type: 'paragraph', data: { text: block.content || '' } };
+            }
+          }),
+        };
+      }
+
+      async function getEditorContent() {
+        if (!editor) return [];
+        var data = await editor.save();
+        return editorToContentBlocks(data);
+      }
+
+      async function publishPost() {
+        var title = document.getElementById('postTitle').value;
+        if (!title) return toast.error('Please enter a title');
+
+        var content = await getEditorContent();
+        var data = {
+          title: title,
+          content: content,
+          excerpt: document.getElementById('postExcerpt').value || undefined,
+          coverImage: document.getElementById('postCover').value || undefined,
+          status: 'published',
+          tags: document.getElementById('postTags').value.split(',').map(function (t) {
+            return t.trim();
+          }).filter(Boolean),
+          featured: document.getElementById('postFeatured').checked,
+        };
+
+        try {
+          var res;
+          if (editingPostId) {
+            res = await api('/posts/' + editingPostId, {
+              method: 'PUT',
+              body: JSON.stringify(data),
+            });
+          } else {
+            res = await api('/posts', { method: 'POST', body: JSON.stringify(data) });
+          }
+
+          if (res.success) {
+            toast.success(editingPostId ? 'Post updated!' : 'Published!');
+            editingPostId = null;
+            clearEditor();
+            showSection('posts', document.querySelector('[data-section=posts]'));
+          } else {
+            toast.error('Error: ' + (res.error ? res.error.message : 'Unknown error'));
+          }
+        } catch (err) {
+          toast.error('Failed to publish: ' + err.message);
+        }
+      }
+
+      async function saveDraft() {
+        var title = document.getElementById('postTitle').value;
+        if (!title) return toast.error('Please enter a title');
+
+        var content = await getEditorContent();
+        var data = {
+          title: title,
+          content: content,
+          excerpt: document.getElementById('postExcerpt').value || undefined,
+          status: 'draft',
+          tags: document.getElementById('postTags').value.split(',').map(function (t) {
+            return t.trim();
+          }).filter(Boolean),
+          featured: document.getElementById('postFeatured').checked,
+        };
+
+        try {
+          var res;
+          if (editingPostId) {
+            res = await api('/posts/' + editingPostId, {
+              method: 'PUT',
+              body: JSON.stringify(data),
+            });
+          } else {
+            res = await api('/posts', { method: 'POST', body: JSON.stringify(data) });
+          }
+
+          if (res.success) {
+            toast.success(editingPostId ? 'Draft updated!' : 'Draft saved!');
+          } else {
+            toast.error('Error: ' + (res.error ? res.error.message : 'Unknown error'));
+          }
+        } catch (err) {
+          toast.error('Failed to save: ' + err.message);
+        }
+      }
+
+      function clearEditor() {
+        document.getElementById('postTitle').value = '';
+        document.getElementById('postExcerpt').value = '';
+        document.getElementById('postTags').value = '';
+        document.getElementById('postCover').value = '';
+        document.getElementById('postFeatured').checked = false;
+        initEditor();
+      }
+
+      async function editPost(id) {
+        try {
+          var res = await api('/posts/' + id);
+          if (!res.success || !res.data) return toast.error('Failed to load post');
+          var post = res.data;
+
+          editingPostId = id;
+
+          // Switch to editor section
+          showSection('new-post', document.querySelector('[data-section=new-post]'));
+
+          // Update header
+          document.querySelector('#new-post-section .font-serif').textContent = 'Edit Post';
+
+          // Fill fields
+          document.getElementById('postTitle').value = post.title || '';
+          document.getElementById('postExcerpt').value = post.excerpt || '';
+          document.getElementById('postTags').value = (post.tags || []).map(function (t) {
+            return t.name || t;
+          }).join(', ');
+          document.getElementById('postCover').value = post.cover_image ||
+            post.coverImage || '';
+          document.getElementById('postFeatured').checked = post.featured || false;
+
+          // Load content into Editor.js
+          var editorData = contentBlocksToEditor(post.content || []);
+          initEditor(editorData);
+        } catch (err) {
+          console.error('Failed to load post for editing:', err);
+          toast.error('Failed to load post');
+        }
+      }
+
+      async function deletePost(id) {
+        if (!await toast.confirm('Are you sure you want to delete this post?')) return;
+        try {
+          await api('/posts/' + id, { method: 'DELETE' });
+          loadPosts();
+        } catch (err) {
+          toast.error('Failed to delete post');
+        }
+      }
+
+      async function loadSettings() {
+        try {
+          var res = await api('/settings');
+          if (res.data) {
+            document.getElementById('settingsTitle').value = res.data.title || '';
+            document.getElementById('settingsDescription').value = res.data.description ||
+              '';
+            document.getElementById('settingsAccentColor').value = res.data.accentColor ||
+              '#C41E3A';
+          }
+        } catch (err) {
+          console.error('Failed to load settings:', err);
+        }
+      }
+
+      async function saveSettings() {
+        try {
+          await api('/settings', {
+            method: 'PUT',
+            body: JSON.stringify({
+              title: document.getElementById('settingsTitle').value,
+              description: document.getElementById('settingsDescription').value,
+              accentColor: document.getElementById('settingsAccentColor').value,
+            }),
+          });
+          toast.success('Settings saved!');
+        } catch (err) {
+          toast.error('Failed to save settings');
+        }
+      }
+
+      function logout() {
+        localStorage.removeItem('meridian_token');
+        window.location.href = '/login';
+      }
+
+      // Pages
+      var editingPageId = null;
+
+      function showPageEditor(id) {
+        editingPageId = id || null;
+        document.getElementById('pageEditor').classList.remove('hidden');
+        document.getElementById('pageEditorTitle').textContent = id
+          ? 'Edit Page'
+          : 'New Page';
+        if (!id) {
+          document.getElementById('pageTitle').value = '';
+          document.getElementById('pageSlug').value = '';
+          document.getElementById('pageContent').value = '';
+        }
+      }
+
+      function hidePageEditor() {
+        document.getElementById('pageEditor').classList.add('hidden');
+        editingPageId = null;
+      }
+
+      async function editPage(id) {
+        try {
+          var res = await api('/pages/' + id);
+          if (!res.success || !res.data) return toast.error('Failed to load page');
+          var page = res.data;
+          showPageEditor(id);
+          document.getElementById('pageTitle').value = page.title || '';
+          document.getElementById('pageSlug').value = page.slug || '';
+          var content = page.content || [];
+          document.getElementById('pageContent').value = content.map(function (b) {
+            return typeof b.content === 'string' ? b.content : '';
+          }).join('\n\n');
+        } catch (err) {
+          toast.error('Failed to load page');
+        }
+      }
+
+      async function savePage(status) {
+        var title = document.getElementById('pageTitle').value;
+        if (!title) return toast.error('Please enter a title');
+
+        var text = document.getElementById('pageContent').value;
+        var content = text.split('\n\n').filter(Boolean).map(function (para) {
+          return {
+            id: String(Date.now() + Math.random()),
+            type: 'text',
+            props: {},
+            content: para,
+          };
+        });
+
+        var data = {
+          title: title,
+          slug: document.getElementById('pageSlug').value || undefined,
+          content: content,
+          status: status,
+        };
+
+        try {
+          var res;
+          if (editingPageId) {
+            res = await api('/pages/' + editingPageId, {
+              method: 'PUT',
+              body: JSON.stringify(data),
+            });
+          } else {
+            res = await api('/pages', { method: 'POST', body: JSON.stringify(data) });
+          }
+          if (res.success) {
+            toast.success(status === 'published' ? 'Page published!' : 'Draft saved!');
+            hidePageEditor();
+            loadPages();
+          } else {
+            toast.error('Error: ' + (res.error ? res.error.message : 'Unknown'));
+          }
+        } catch (err) {
+          toast.error('Failed to save page');
+        }
+      }
+
+      async function deletePage(id) {
+        if (!await toast.confirm('Delete this page?')) return;
+        try {
+          await api('/pages/' + id, { method: 'DELETE' });
+          loadPages();
+        } catch (err) {
+          toast.error('Failed to delete page');
+        }
+      }
+
+      async function loadPages() {
+        try {
+          var res = await api('/pages');
+          var pages = res.data || [];
+          var tbody = document.getElementById('pagesTable');
+
+          if (pages.length) {
+            tbody.innerHTML = pages.map(function (p) {
+              var date = new Date(
+                p.updated_at || p.updatedAt || p.created_at || p.createdAt,
+              );
+              return '<tr class="hover:bg-linen">' +
+                '<td class="px-4 py-4 border-b border-black/[0.04] align-middle font-medium text-ink">' +
+                escapeHtml(p.title) + '</td>' +
+                '<td class="px-4 py-4 border-b border-black/[0.04] align-middle text-muted text-[13px]">/page/' +
+                escapeHtml(p.slug) + '</td>' +
+                '<td class="px-4 py-4 border-b border-black/[0.04] align-middle"><span class="inline-block py-1 px-2.5 text-[11px] uppercase tracking-[0.05em] rounded-brutal font-medium ' +
+                getBadgeClasses(p.status) + '">' + p.status + '</span></td>' +
+                '<td class="px-4 py-4 border-b border-black/[0.04] align-middle text-muted">' +
+                date.toLocaleDateString() + '</td>' +
+                '<td class="px-4 py-4 border-b border-black/[0.04] align-middle text-right"><div class="flex gap-2 justify-end">' +
+                '<button class="border border-black/15 text-muted px-4 py-2 text-[13px] font-medium rounded-brutal transition-all duration-150 hover:border-ink hover:text-ink cursor-pointer bg-transparent" onclick="editPage(\'' +
+                p.id + '\')">Edit</button>' +
+                '<button class="border border-crimson text-crimson px-4 py-2 text-[13px] font-medium rounded-brutal transition-all duration-150 hover:bg-crimson hover:text-white cursor-pointer bg-transparent" onclick="deletePage(\'' +
+                p.id + '\')">Delete</button>' +
+                '</div></td>' +
+                '</tr>';
+            }).join('');
+          } else {
+            tbody.innerHTML =
+              '<tr><td colspan="5"><div class="text-center py-16 px-10 text-muted">No pages yet. Create your first page (About, Contact, etc.)</div></td></tr>';
+          }
+        } catch (err) {
+          console.error('Failed to load pages:', err);
+        }
+      }
+
+      // Newsletters
+      function showNewsletter() {
+        document.getElementById('newsletterComposer').classList.remove('hidden');
+      }
+      function hideNewsletter() {
+        document.getElementById('newsletterComposer').classList.add('hidden');
+        document.getElementById('nlSubject').value = '';
+        document.getElementById('nlContent').value = '';
+      }
+
+      async function createNewsletter(action) {
+        var subject = document.getElementById('nlSubject').value;
+        if (!subject) return toast.error('Please enter a subject');
+
+        var content = document.getElementById('nlContent').value;
+        try {
+          var res = await api('/newsletters', {
+            method: 'POST',
+            body: JSON.stringify({
+              subject: subject,
+              content: [{ type: 'text', content: content }],
+            }),
+          });
+          if (!res.success) {
+            return toast.error('Error: ' + (res.error ? res.error.message : 'Unknown'));
+          }
+
+          if (action === 'send' && res.data && res.data.id) {
+            var sendRes = await api('/newsletters/' + res.data.id + '/send', {
+              method: 'POST',
+            });
+            if (sendRes.success) {
+              toast.success(
+                'Newsletter sent to ' + (sendRes.data.recipients || 0) + ' subscribers!',
+              );
+            } else {
+              toast.error(
+                'Created but send failed: ' +
+                  (sendRes.error ? sendRes.error.message : 'Unknown'),
+              );
+            }
+          } else {
+            toast.success('Draft saved!');
+          }
+          hideNewsletter();
+          loadNewsletters();
+        } catch (err) {
+          toast.error('Failed: ' + err.message);
+        }
+      }
+
+      async function sendNewsletter(id) {
+        if (
+          !await toast.confirm('Send this newsletter to all active subscribers?', {
+            destructive: false,
+            okText: 'Send',
+          })
+        ) return;
+        try {
+          var res = await api('/newsletters/' + id + '/send', { method: 'POST' });
+          if (res.success) {
+            toast.success('Sent to ' + (res.data.recipients || 0) + ' subscribers!');
+            loadNewsletters();
+          } else {
+            toast.error('Error: ' + (res.error ? res.error.message : 'Unknown'));
+          }
+        } catch (err) {
+          toast.error('Failed: ' + err.message);
+        }
+      }
+
+      async function loadNewsletters() {
+        try {
+          var res = await api('/newsletters');
+          var newsletters = res.data || [];
+          var tbody = document.getElementById('newslettersTable');
+
+          if (newsletters.length) {
+            tbody.innerHTML = newsletters.map(function (n) {
+              var date = new Date(n.sent_at || n.sentAt || n.created_at || n.createdAt);
+              var statusClass = n.status === 'sent'
+                ? 'bg-forest/10 text-forest'
+                : n.status === 'sending'
+                ? 'bg-gold/10 text-gold'
+                : 'bg-black/[0.04] text-muted';
+              var actions = n.status === 'draft'
+                ? '<button class="border border-black/15 text-muted px-4 py-2 text-[13px] font-medium rounded-brutal transition-all duration-150 hover:border-ink hover:text-ink cursor-pointer bg-transparent" onclick="sendNewsletter(\'' +
+                  n.id + '\')">Send</button>'
+                : '';
+              return '<tr class="hover:bg-linen">' +
+                '<td class="px-4 py-4 border-b border-black/[0.04] align-middle font-medium text-ink">' +
+                escapeHtml(n.subject) + '</td>' +
+                '<td class="px-4 py-4 border-b border-black/[0.04] align-middle"><span class="inline-block py-1 px-2.5 text-[11px] uppercase tracking-[0.05em] rounded-brutal font-medium ' +
+                statusClass + '">' + n.status + '</span></td>' +
+                '<td class="px-4 py-4 border-b border-black/[0.04] align-middle text-muted">' +
+                (n.recipient_count || n.recipientCount || '—') + '</td>' +
+                '<td class="px-4 py-4 border-b border-black/[0.04] align-middle text-muted">' +
+                date.toLocaleDateString() + '</td>' +
+                '<td class="px-4 py-4 border-b border-black/[0.04] align-middle text-right">' +
+                actions + '</td>' +
+                '</tr>';
+            }).join('');
+          } else {
+            tbody.innerHTML =
+              '<tr><td colspan="5"><div class="text-center py-16 px-10 text-muted">No newsletters yet. Create your first one!</div></td></tr>';
+          }
+        } catch (err) {
+          console.error('Failed to load newsletters:', err);
+        }
+      }
+
+      // Analytics
+      async function loadAnalytics() {
+        try {
+          var res = await api('/analytics/dashboard');
+          if (!res.success) return;
+          var data = res.data;
+
+          document.getElementById('analyticsViews').textContent =
+            (data.totals && data.totals.pageViews) || 0;
+          document.getElementById('analyticsVisitors').textContent =
+            (data.totals && data.totals.visitors) || 0;
+          document.getElementById('analyticsNewMembers').textContent =
+            (data.totals && data.totals.newMembers) || 0;
+          document.getElementById('analyticsTotalMembers').textContent =
+            (data.members && data.members.total) || 0;
+
+          // Top posts
+          var topEl = document.getElementById('analyticsTopPosts');
+          if (data.topPosts && data.topPosts.length) {
+            topEl.innerHTML = data.topPosts.map(function (p, i) {
+              return '<div class="flex justify-between py-2 ' +
+                (i > 0 ? 'border-t border-black/[0.04]' : '') + '">' +
+                '<span class="text-ink">' + escapeHtml(p.title) + '</span>' +
+                '<span class="text-muted">' + p.views + ' views</span>' +
+                '</div>';
+            }).join('');
+          } else {
+            topEl.textContent =
+              'No post view data yet. Views will appear as readers visit your posts.';
+          }
+
+          // Member breakdown
+          var mbEl = document.getElementById('analyticsMemberBreakdown');
+          if (data.members && data.members.total > 0) {
+            mbEl.innerHTML =
+              '<div class="flex justify-between py-2"><span class="text-ink">Free</span><span class="text-muted">' +
+              data.members.free + '</span></div>' +
+              '<div class="flex justify-between py-2 border-t border-black/[0.04]"><span class="text-ink">Paid</span><span class="text-muted">' +
+              data.members.paid + '</span></div>' +
+              '<div class="flex justify-between py-2 border-t border-black/[0.04] font-medium"><span class="text-ink">Total</span><span>' +
+              data.members.total + '</span></div>';
+          } else {
+            mbEl.textContent =
+              'No members yet. Members will appear when readers subscribe.';
+          }
+        } catch (err) {
+          console.error('Failed to load analytics:', err);
+        }
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      // Init
+      async function loadUser() {
+        try {
+          var res = await api('/auth/me');
+          if (res.data) {
+            document.getElementById('userName').textContent = res.data.name ||
+              res.data.email;
+          }
+        } catch (err) {
+          // User info not available
+        }
+      }
+
+      loadUser();
+      loadDashboard();
+      initEditor();
+    </script>
+  </body>
+</html>

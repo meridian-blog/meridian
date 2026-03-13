@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search - Meridian</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    >
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="/api/public/rss">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              parchment: '#FAF9F6',
+              linen: '#F2F0EB',
+              ink: '#1A1A1A',
+              muted: '#6B6B6B',
+              crimson: '#C41E3A',
+              forest: '#2D5016',
+              gold: '#B8860B',
+            },
+            fontFamily: {
+              serif: ['Crimson Text', 'Georgia', 'serif'],
+              sans: ['Inter', '-apple-system', 'sans-serif'],
+            },
+            borderRadius: {
+              brutal: '2px',
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      @media (max-width: 1100px) {
+        .layout {
+          grid-template-columns: 1fr !important;
+        }
+        .sidebar-left, .sidebar-right {
+          display: none !important;
+        }
+      }
+      .post-footer span:not(:last-child)::after {
+        content: '\00B7';
+        margin-left: 0.5rem;
+      }
+    </style>
+  </head>
+  <body class="font-sans text-base leading-relaxed text-ink bg-parchment antialiased">
+    <div
+      class="layout grid grid-cols-[280px_minmax(auto,720px)_1fr] gap-16 max-w-[1400px] mx-auto p-10"
+    >
+      <!-- Left Sidebar -->
+      <aside class="sidebar-left sticky top-10 h-fit">
+        <a href="/" class="text-inherit no-underline flex items-center gap-2 mb-2">
+          <span
+            class="inline-flex items-center justify-center w-8 h-8 bg-ink text-parchment font-serif font-semibold text-lg rounded-brutal leading-none"
+          >M</span>
+          <h1
+            id="siteTitle"
+            class="font-serif text-4xl font-semibold tracking-tight leading-none"
+          >
+            Meridian
+          </h1>
+        </a>
+        <p id="siteDesc" class="text-muted text-sm leading-normal mb-16 max-w-[220px]">
+          A modern publishing platform with zero platform fees.
+        </p>
+
+        <nav class="flex flex-col gap-1">
+          <a
+            href="/"
+            class="py-2 text-muted text-sm no-underline transition-colors duration-150 hover:text-ink"
+          >Home</a>
+          <a
+            href="/search"
+            class="py-2 text-ink text-sm no-underline transition-colors duration-150 font-medium"
+          >Search</a>
+          <a
+            href="/login"
+            class="py-2 text-muted text-sm no-underline transition-colors duration-150 hover:text-ink"
+          >Admin</a>
+        </nav>
+
+        <div class="mt-[104px] pt-10 border-t border-black/[0.06]">
+          <div class="text-[10px] uppercase tracking-[0.15em] text-muted mb-2">Follow</div>
+          <div id="socialLinks" class="flex gap-6">
+            <a
+              href="/api/public/rss"
+              class="text-muted no-underline text-[13px] hover:text-ink transition-colors duration-150"
+            >RSS</a>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="min-h-screen">
+        <div class="mb-16 pb-10 border-b border-black/[0.06]">
+          <h1 class="font-serif text-[42px] font-normal leading-tight tracking-tight mb-8">
+            Search
+          </h1>
+          <form onsubmit="doSearch(event)" class="flex gap-3">
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Search posts..."
+              autofocus
+              class="flex-1 py-3 px-4 text-[15px] bg-white border border-black/10 rounded-brutal outline-none transition-colors duration-200 font-sans text-ink focus:border-ink"
+            >
+            <button
+              type="submit"
+              class="bg-ink text-parchment px-6 py-3 text-sm font-medium rounded-brutal transition-all duration-150 hover:-translate-y-px hover:shadow-md cursor-pointer"
+            >
+              Search
+            </button>
+          </form>
+        </div>
+
+        <div id="results">
+          <div class="text-center py-16 text-muted">
+            <p>Enter a search term to find posts.</p>
+          </div>
+        </div>
+      </main>
+
+      <!-- Right Sidebar -->
+      <aside class="sidebar-right sticky top-10 h-fit">
+        <div class="mb-16">
+          <div class="text-[10px] uppercase tracking-[0.15em] text-muted mb-6">Browse by Tag</div>
+          <div id="allTags" class="flex flex-wrap gap-2"></div>
+        </div>
+      </aside>
+    </div>
+
+    <script>
+      var searchTimer = null;
+      var permalinkFormat = '/post/:slug';
+
+      function postUrl(slug) {
+        return permalinkFormat.replace(':slug', slug);
+      }
+
+      function doSearch(e) {
+        if (e) e.preventDefault();
+        var q = document.getElementById('searchInput').value.trim();
+        if (q.length < 2) return;
+
+        // Update URL without reload
+        history.replaceState(null, '', '/search?q=' + encodeURIComponent(q));
+        performSearch(q);
+      }
+
+      async function performSearch(q) {
+        document.getElementById('results').innerHTML =
+          '<div class="text-center py-16 text-muted">Searching...</div>';
+
+        try {
+          var res = await fetch('/api/public/search?q=' + encodeURIComponent(q));
+          var data = await res.json();
+
+          if (!data.success || !data.data.length) {
+            document.getElementById('results').innerHTML =
+              '<div class="text-center py-16 text-muted">' +
+              '<p class="font-serif text-2xl text-ink mb-2">No results</p>' +
+              '<p>No posts found for "' + escapeHtml(q) + '"</p>' +
+              '</div>';
+            return;
+          }
+
+          var posts = data.data;
+          document.getElementById('results').innerHTML =
+            '<div class="text-sm text-muted mb-8">' + posts.length + ' result' +
+            (posts.length !== 1 ? 's' : '') + ' for "' + escapeHtml(q) + '"</div>' +
+            posts.map(function (post, i) {
+              return '<article class="mb-12 pb-12 ' +
+                (i < posts.length - 1 ? 'border-b border-black/[0.06]' : '') + '">' +
+                '<h2 class="font-serif text-[28px] font-normal leading-tight mb-2 tracking-tight">' +
+                '<a href="' + postUrl(post.slug) +
+                '" class="text-inherit no-underline hover:text-muted transition-colors duration-150">' +
+                escapeHtml(post.title) + '</a>' +
+                '</h2>' +
+                '<p class="text-muted text-base leading-relaxed mb-4 max-w-prose">' +
+                escapeHtml(post.excerpt || '') + '</p>' +
+                '<div class="post-footer flex gap-2 text-[13px] text-muted">' +
+                '<span>' + escapeHtml(post.authorName) + '</span>' +
+                '<span>' +
+                new Date(post.publishedAt).toLocaleDateString('en-US', {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                }) + '</span>' +
+                '<span>' + post.readingTime + ' min read</span>' +
+                '</div>' +
+                '</article>';
+            }).join('');
+        } catch (err) {
+          document.getElementById('results').innerHTML =
+            '<div class="text-center py-16 text-muted">Search failed. Please try again.</div>';
+        }
+      }
+
+      // Live search on typing (debounced)
+      document.getElementById('searchInput').addEventListener('input', function () {
+        clearTimeout(searchTimer);
+        var q = this.value.trim();
+        if (q.length >= 2) {
+          searchTimer = setTimeout(function () {
+            performSearch(q);
+          }, 300);
+        }
+      });
+
+      // Load tags for sidebar
+      async function loadTags() {
+        try {
+          var res = await fetch('/api/public/tags');
+          var data = await res.json();
+          if (data.success && data.data) {
+            document.getElementById('allTags').innerHTML = data.data.map(function (t) {
+              return '<a href="/tag/' + t.slug +
+                '" class="inline-block py-1 px-3 text-[13px] rounded-brutal no-underline border border-black/10 text-muted hover:border-ink hover:text-ink transition-all duration-150">' +
+                t.name + '</a>';
+            }).join('');
+          }
+        } catch (err) { /* ignore */ }
+      }
+
+      async function loadSiteSettings() {
+        try {
+          var res = await fetch('/api/public/site');
+          var data = await res.json();
+          if (data.success && data.data) {
+            var s = data.data;
+            if (s.permalinkFormat) permalinkFormat = s.permalinkFormat;
+            var titleEl = document.getElementById('siteTitle');
+            var descEl = document.getElementById('siteDesc');
+            if (titleEl) titleEl.textContent = s.title;
+            if (descEl) descEl.textContent = s.description;
+
+            var links = s.socialLinks || {};
+            var linksHtml = '';
+            var labels = {
+              twitter: 'Twitter',
+              github: 'GitHub',
+              linkedin: 'LinkedIn',
+              youtube: 'YouTube',
+            };
+            for (var key in labels) {
+              if (links[key]) {
+                linksHtml += '<a href="' + links[key] +
+                  '" target="_blank" rel="noopener" class="text-muted no-underline text-[13px] hover:text-ink transition-colors duration-150">' +
+                  labels[key] + '</a>';
+              }
+            }
+            linksHtml +=
+              '<a href="/api/public/rss" class="text-muted no-underline text-[13px] hover:text-ink transition-colors duration-150">RSS</a>';
+            var socialEl = document.getElementById('socialLinks');
+            if (socialEl) socialEl.innerHTML = linksHtml;
+          }
+        } catch (e) {}
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+
+      // Check for ?q= param on load
+      var params = new URLSearchParams(window.location.search);
+      var initialQuery = params.get('q');
+      if (initialQuery) {
+        document.getElementById('searchInput').value = initialQuery;
+        performSearch(initialQuery);
+      }
+
+      loadSiteSettings();
+      loadTags();
+    </script>
+  </body>
+</html>

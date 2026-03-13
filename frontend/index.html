@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meridian</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <meta name="description" content="A modern publishing platform with zero platform fees.">
+    <meta property="og:title" content="Meridian">
+    <meta property="og:description" content="A modern publishing platform with zero platform fees.">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    >
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="/api/public/rss">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              parchment: '#FAF9F6',
+              linen: '#F2F0EB',
+              ink: '#1A1A1A',
+              muted: '#6B6B6B',
+              crimson: '#C41E3A',
+              forest: '#2D5016',
+              gold: '#B8860B',
+            },
+            fontFamily: {
+              serif: ['Crimson Text', 'Georgia', 'serif'],
+              sans: ['Inter', '-apple-system', 'sans-serif'],
+            },
+            borderRadius: {
+              brutal: '2px',
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      /* Responsive: single column on small screens, hide sidebars, show mobile header */
+      @media (max-width: 1100px) {
+        .layout {
+          grid-template-columns: 1fr !important;
+        }
+        .sidebar-left, .sidebar-right {
+          display: none !important;
+        }
+        .mobile-header {
+          display: flex !important;
+        }
+      }
+      /* Pseudo-element separators that Tailwind can't handle */
+      .post-tag:not(:last-child)::after {
+        content: '\00B7';
+        margin-left: 0.5rem;
+        color: #6b6b6b;
+      }
+      .post-footer span:not(:last-child)::after {
+        content: '\00B7';
+        margin-left: 0.5rem;
+      }
+    </style>
+  </head>
+  <body class="font-sans text-base leading-relaxed text-ink bg-parchment antialiased">
+    <div
+      class="fixed top-0 left-0 h-0.5 bg-crimson z-50 transition-[width] duration-100"
+      id="readingProgress"
+      style="width: 0%"
+    >
+    </div>
+
+    <div
+      class="mobile-header hidden px-6 py-4 border-b border-black/[0.06] justify-between items-center"
+    >
+      <h1 class="font-serif text-2xl font-semibold flex items-center gap-2">
+        <span
+          class="inline-flex items-center justify-center w-7 h-7 bg-ink text-parchment font-serif font-semibold text-base rounded-brutal leading-none"
+        >M</span>
+        Meridian
+      </h1>
+      <button class="bg-transparent border-none text-xl cursor-pointer text-ink">&#9776;</button>
+    </div>
+
+    <div
+      class="layout grid grid-cols-[280px_minmax(auto,720px)_1fr] gap-16 max-w-[1400px] mx-auto p-10"
+    >
+      <!-- Left Sidebar -->
+      <aside class="sidebar-left sticky top-10 h-fit">
+        <div class="flex items-center gap-2 mb-2">
+          <span
+            class="inline-flex items-center justify-center w-8 h-8 bg-ink text-parchment font-serif font-semibold text-lg rounded-brutal leading-none"
+          >M</span>
+          <h1
+            id="siteTitle"
+            class="font-serif text-4xl font-semibold tracking-tight leading-none"
+          >
+            Meridian
+          </h1>
+        </div>
+        <p id="siteDesc" class="text-muted text-sm leading-normal mb-16 max-w-[220px]">
+          A modern publishing platform with zero platform fees.
+        </p>
+
+        <nav class="flex flex-col gap-1">
+          <a
+            href="/"
+            class="active py-2 text-ink text-sm no-underline transition-colors duration-150 hover:text-ink"
+          >Home</a>
+          <a
+            href="/search"
+            class="py-2 text-muted text-sm no-underline transition-colors duration-150 hover:text-ink"
+          >Search</a>
+          <a
+            href="/login"
+            class="py-2 text-muted text-sm no-underline transition-colors duration-150 hover:text-ink"
+          >Admin</a>
+        </nav>
+
+        <div class="sidebar-footer mt-[104px] pt-10 border-t border-black/[0.06]">
+          <div class="text-[10px] uppercase tracking-[0.15em] text-muted mb-2">Follow</div>
+          <div id="socialLinks" class="flex gap-6">
+            <a
+              href="/api/public/rss"
+              class="text-muted no-underline text-[13px] hover:text-ink transition-colors duration-150"
+            >RSS</a>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main min-h-screen" id="content">
+        <div class="text-center py-[104px] text-muted">Loading...</div>
+      </main>
+
+      <!-- Right Sidebar -->
+      <aside class="sidebar-right sticky top-10 h-fit">
+        <div class="mb-16">
+          <div class="text-[10px] uppercase tracking-[0.15em] text-muted mb-6">Popular</div>
+          <div id="popularPosts">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Member widget: shows subscribe form or member info -->
+        <div id="memberWidget" class="bg-white border border-black/[0.06] p-8">
+          <!-- Populated by JS -->
+        </div>
+      </aside>
+    </div>
+
+    <script src="/toast.js"></script>
+    <script>
+      var currentPage = 1;
+      var permalinkFormat = '/post/:slug'; // default, updated from settings
+
+      function postUrl(slug) {
+        return permalinkFormat.replace(':slug', slug);
+      }
+
+      async function loadPosts(page) {
+        currentPage = page || 1;
+        try {
+          const res = await fetch('/api/public/posts?page=' + currentPage + '&perPage=10');
+          const data = await res.json();
+
+          if (!data.success || !data.data?.length) {
+            document.getElementById('content').innerHTML = `
+            <div class="text-center py-[104px]">
+              <h2 class="font-serif text-[28px] font-normal mb-2">Welcome to Meridian</h2>
+              <p class="text-muted">No posts yet. <a href="/login" class="text-ink">Sign in to create your first post</a></p>
+            </div>
+          `;
+            return;
+          }
+
+          const posts = data.data;
+          const pagination = data.pagination;
+
+          var postsHtml = posts.map((post, i) => `
+          <article class="mb-[104px] pb-16 ${
+            i < posts.length - 1 ? 'border-b border-black/[0.06]' : ''
+          }">
+            <div class="flex gap-2 mb-2 text-xs uppercase tracking-wider">
+              ${
+            post.featured
+              ? '<span class="bg-crimson text-white px-2 py-0.5 text-[10px] uppercase tracking-wider mr-2">Featured</span>'
+              : ''
+          }
+              ${
+            (post.tags || []).slice(0, 2).map((t) =>
+              `<a href="/tag/${t.slug}" class="post-tag text-muted no-underline hover:text-ink transition-colors duration-150">${t.name}</a>`
+            ).join('') || ''
+          }
+            </div>
+            <h2 class="font-serif text-[32px] font-normal leading-tight mb-2 tracking-tight">
+              <a href="${
+            postUrl(post.slug)
+          }" class="text-inherit no-underline hover:text-muted transition-colors duration-150">${post.title}</a>
+            </h2>
+            <p class="text-muted text-base leading-relaxed mb-6 max-w-prose">${
+            post.excerpt || ''
+          }</p>
+            <div class="post-footer flex gap-2 text-[13px] text-muted">
+              <span>${post.authorName}</span>
+              <span>${
+            new Date(post.publishedAt).toLocaleDateString('en-US', {
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric',
+            })
+          }</span>
+              <span>${post.readingTime} min read</span>
+            </div>
+          </article>
+        `).join('');
+
+          // Pagination
+          var paginationHtml = '';
+          if (pagination.hasPrev || pagination.hasNext) {
+            paginationHtml =
+              `<div class="flex justify-between items-center py-10 border-t border-black/[0.06]">
+            ${
+                pagination.hasPrev
+                  ? '<button onclick="loadPosts(' + (currentPage - 1) +
+                    ')" class="border border-black/15 text-muted px-6 py-3 text-sm font-medium rounded-brutal transition-all duration-150 hover:border-ink hover:text-ink cursor-pointer bg-transparent">Newer Posts</button>'
+                  : '<span></span>'
+              }
+            <span class="text-sm text-muted">Page ${pagination.page} of ${pagination.totalPages}</span>
+            ${
+                pagination.hasNext
+                  ? '<button onclick="loadPosts(' + (currentPage + 1) +
+                    ')" class="border border-black/15 text-muted px-6 py-3 text-sm font-medium rounded-brutal transition-all duration-150 hover:border-ink hover:text-ink cursor-pointer bg-transparent">Older Posts</button>'
+                  : '<span></span>'
+              }
+          </div>`;
+          }
+
+          document.getElementById('content').innerHTML = postsHtml + paginationHtml;
+
+          // Populate popular sidebar (first 3 posts, only on first load)
+          if (currentPage === 1) {
+            document.getElementById('popularPosts').innerHTML = posts.slice(0, 3).map(
+              (post) => `
+            <div class="mb-6">
+              <a href="${
+                postUrl(post.slug)
+              }" class="block text-ink no-underline text-sm leading-snug mb-1 hover:text-muted transition-colors duration-150">${post.title}</a>
+              <span class="text-xs text-muted">${
+                new Date(post.publishedAt).toLocaleDateString()
+              }</span>
+            </div>
+          `,
+            ).join('');
+          }
+
+          // Scroll to top on page change
+          if (page && page > 1) window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (err) {
+          document.getElementById('content').innerHTML = `
+          <div class="text-center py-[104px]">
+            <p class="text-muted">Error loading posts</p>
+          </div>
+        `;
+        }
+      }
+
+      // Member auth
+      function getMemberToken() {
+        return localStorage.getItem('meridian_member_token');
+      }
+      function setMemberToken(t) {
+        localStorage.setItem('meridian_member_token', t);
+      }
+      function clearMemberToken() {
+        localStorage.removeItem('meridian_member_token');
+      }
+
+      function renderMemberWidget() {
+        var el = document.getElementById('memberWidget');
+        var token = getMemberToken();
+
+        if (token) {
+          // Show member info
+          fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } })
+            .then((r) => r.json())
+            .then(function (data) {
+              if (data.success && data.data) {
+                var m = data.data;
+                el.innerHTML =
+                  '<div class="text-[10px] uppercase tracking-[0.15em] text-muted mb-4">Member</div>' +
+                  '<div class="text-sm font-medium text-ink mb-1">' + (m.name || m.email) +
+                  '</div>' +
+                  '<div class="text-xs text-muted mb-4">' + (m.tier || 'free') +
+                  ' tier</div>' +
+                  '<button onclick="memberLogout()" class="w-full p-2 border border-black/10 rounded-brutal text-sm text-muted cursor-pointer bg-transparent hover:border-ink hover:text-ink transition-all duration-150">Sign Out</button>';
+              } else {
+                clearMemberToken();
+                renderMemberWidget();
+              }
+            })
+            .catch(function () {
+              clearMemberToken();
+              renderMemberWidget();
+            });
+        } else {
+          // Show subscribe/login form
+          el.innerHTML =
+            '<div class="text-[10px] uppercase tracking-[0.15em] text-muted mb-6">Newsletter</div>' +
+            '<p class="text-sm text-muted mb-6 leading-normal">Get the latest posts delivered to your inbox. No spam, ever.</p>' +
+            '<form class="flex flex-col gap-2" onsubmit="memberSubscribe(event)">' +
+            '<input type="email" placeholder="your@email.com" required class="p-3 border border-black/10 rounded-brutal text-sm outline-none focus:border-ink">' +
+            '<button type="submit" class="p-3 bg-ink text-parchment border-none rounded-brutal text-sm font-medium cursor-pointer transition-transform duration-150 hover:-translate-y-px">Subscribe</button>' +
+            '</form>' +
+            '<div class="mt-4 text-center">' +
+            '<button onclick="showMemberLogin()" class="text-xs text-muted hover:text-ink cursor-pointer bg-transparent border-none underline">Already a member? Sign in</button>' +
+            '</div>';
+        }
+      }
+
+      function showMemberLogin() {
+        var el = document.getElementById('memberWidget');
+        el.innerHTML =
+          '<div class="text-[10px] uppercase tracking-[0.15em] text-muted mb-6">Member Sign In</div>' +
+          '<p class="text-sm text-muted mb-6 leading-normal">Enter your email to sign in and access member content.</p>' +
+          '<form class="flex flex-col gap-2" onsubmit="memberLogin(event)">' +
+          '<input type="email" placeholder="your@email.com" required class="p-3 border border-black/10 rounded-brutal text-sm outline-none focus:border-ink">' +
+          '<button type="submit" class="p-3 bg-ink text-parchment border-none rounded-brutal text-sm font-medium cursor-pointer transition-transform duration-150 hover:-translate-y-px">Sign In</button>' +
+          '</form>' +
+          '<div class="mt-4 text-center">' +
+          '<button onclick="renderMemberWidget()" class="text-xs text-muted hover:text-ink cursor-pointer bg-transparent border-none underline">Back to subscribe</button>' +
+          '</div>';
+      }
+
+      async function memberSubscribe(e) {
+        e.preventDefault();
+        var email = e.target.querySelector('input').value;
+        try {
+          var res = await fetch('/api/auth/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email }),
+          });
+          var data = await res.json();
+          if (data.success && data.data?.token) {
+            setMemberToken(data.data.token);
+            renderMemberWidget();
+          } else if (data.success && data.data?.message) {
+            // Already subscribed, log them in
+            var loginRes = await fetch('/api/auth/member/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: email }),
+            });
+            var loginData = await loginRes.json();
+            if (loginData.success && loginData.data?.token) {
+              setMemberToken(loginData.data.token);
+              renderMemberWidget();
+            } else {
+              toast.info('Already subscribed! Check your email to sign in.');
+            }
+          } else {
+            toast.error('Error: ' + (data.error?.message || 'Unknown'));
+          }
+        } catch (err) {
+          toast.error('Error. Please try again.');
+        }
+      }
+
+      async function memberLogin(e) {
+        e.preventDefault();
+        var email = e.target.querySelector('input').value;
+        try {
+          var res = await fetch('/api/auth/member/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email }),
+          });
+          var data = await res.json();
+          if (data.success && data.data?.token) {
+            setMemberToken(data.data.token);
+            renderMemberWidget();
+          } else {
+            toast.error(data.error?.message || 'Member not found. Subscribe first!');
+          }
+        } catch (err) {
+          toast.error('Error. Please try again.');
+        }
+      }
+
+      function memberLogout() {
+        clearMemberToken();
+        renderMemberWidget();
+      }
+
+      // Reading progress
+      window.addEventListener('scroll', () => {
+        const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+        const height = document.documentElement.scrollHeight -
+          document.documentElement.clientHeight;
+        const scrolled = (winScroll / height) * 100;
+        document.getElementById('readingProgress').style.width = scrolled + '%';
+      });
+
+      async function loadSiteSettings() {
+        try {
+          var res = await fetch('/api/public/site');
+          var data = await res.json();
+          if (data.success && data.data) {
+            var s = data.data;
+            if (s.permalinkFormat) permalinkFormat = s.permalinkFormat;
+            document.getElementById('siteTitle').textContent = s.title;
+            document.getElementById('siteDesc').textContent = s.description;
+            document.title = s.title;
+
+            var links = s.socialLinks || {};
+            var linksHtml = '';
+            var labels = {
+              twitter: 'Twitter',
+              github: 'GitHub',
+              linkedin: 'LinkedIn',
+              youtube: 'YouTube',
+            };
+            for (var key in labels) {
+              if (links[key]) {
+                linksHtml += '<a href="' + links[key] +
+                  '" target="_blank" rel="noopener" class="text-muted no-underline text-[13px] hover:text-ink transition-colors duration-150">' +
+                  labels[key] + '</a>';
+              }
+            }
+            linksHtml +=
+              '<a href="/api/public/rss" class="text-muted no-underline text-[13px] hover:text-ink transition-colors duration-150">RSS</a>';
+            document.getElementById('socialLinks').innerHTML = linksHtml;
+          }
+        } catch (e) {}
+      }
+
+      // Load settings first (to get permalink format), then render
+      loadSiteSettings().then(function () {
+        renderMemberWidget();
+        loadPosts(1);
+      });
+    </script>
+  </body>
+</html>

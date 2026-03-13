@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="32" fill="#1A1A1A"/>
+  <!--
+    Classic serif M with:
+    - Bracketed serifs at baseline on all four feet
+    - Top serifs on outer strokes
+    - Thick/thin stroke contrast (outer strokes thick, inner V thin)
+    - Center V dip reaching about 65% down
+    Constructed as a single closed outline path
+  -->
+  <path fill="#FAF9F6" d="
+    M 68 400
+    L 68 394
+    Q 90 394 100 386 Q 110 378 110 358
+    L 110 154
+    Q 110 134 100 126 Q 90 118 68 118
+    L 68 112
+    L 180 112
+    L 256 320
+    L 332 112
+    L 444 112
+    L 444 118
+    Q 422 118 412 126 Q 402 134 402 154
+    L 402 358
+    Q 402 378 412 386 Q 422 394 444 394
+    L 444 400
+    L 300 400
+    L 300 394
+    Q 322 394 332 386 Q 342 378 342 358
+    L 342 164
+    L 265 370
+    L 247 370
+    L 170 164
+    L 170 358
+    Q 170 378 180 386 Q 190 394 212 394
+    L 212 400
+    Z
+  "/>
+</svg>

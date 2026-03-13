@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meridian</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <meta name="description" content="">
+    <meta property="og:title" content="">
+    <meta property="og:description" content="">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    >
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="/api/public/rss">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              parchment: '#FAF9F6',
+              linen: '#F2F0EB',
+              ink: '#1A1A1A',
+              muted: '#6B6B6B',
+              crimson: '#C41E3A',
+              forest: '#2D5016',
+              gold: '#B8860B',
+            },
+            fontFamily: {
+              serif: ['Crimson Text', 'Georgia', 'serif'],
+              sans: ['Inter', '-apple-system', 'sans-serif'],
+            },
+            borderRadius: {
+              brutal: '2px',
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      @media (max-width: 1100px) {
+        .layout {
+          grid-template-columns: 1fr !important;
+        }
+        .sidebar-left, .sidebar-right {
+          display: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body class="font-sans text-base leading-relaxed text-ink bg-parchment antialiased">
+    <div
+      class="layout grid grid-cols-[280px_minmax(auto,720px)_1fr] gap-16 max-w-[1400px] mx-auto p-10"
+    >
+      <!-- Left Sidebar -->
+      <aside class="sidebar-left sticky top-10 h-fit">
+        <a href="/" class="text-inherit no-underline flex items-center gap-2 mb-2">
+          <span
+            class="inline-flex items-center justify-center w-8 h-8 bg-ink text-parchment font-serif font-semibold text-lg rounded-brutal leading-none"
+          >M</span>
+          <h1
+            id="siteTitle"
+            class="font-serif text-4xl font-semibold tracking-tight leading-none"
+          >
+            Meridian
+          </h1>
+        </a>
+        <p id="siteDesc" class="text-muted text-sm leading-normal mb-16 max-w-[220px]">
+          A modern publishing platform with zero platform fees.
+        </p>
+
+        <nav class="flex flex-col gap-1">
+          <a
+            href="/"
+            class="py-2 text-muted text-sm no-underline transition-colors duration-150 hover:text-ink"
+          >Home</a>
+          <a
+            href="/login"
+            class="py-2 text-muted text-sm no-underline transition-colors duration-150 hover:text-ink"
+          >Admin</a>
+        </nav>
+
+        <div class="mt-[104px] pt-10 border-t border-black/[0.06]">
+          <div class="text-[10px] uppercase tracking-[0.15em] text-muted mb-2">Follow</div>
+          <div id="socialLinks" class="flex gap-6">
+            <a
+              href="/api/public/rss"
+              class="text-muted no-underline text-[13px] hover:text-ink transition-colors duration-150"
+            >RSS</a>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="min-h-screen py-10" id="content">
+        <div class="text-center py-[104px] text-muted">Loading...</div>
+      </main>
+
+      <!-- Right Sidebar (empty for pages) -->
+      <aside class="sidebar-right sticky top-10 h-fit">
+        <div class="newsletter-widget bg-white border border-black/[0.06] p-8">
+          <div class="text-[10px] uppercase tracking-[0.15em] text-muted mb-6">Newsletter</div>
+          <p class="text-sm text-muted mb-6 leading-normal">
+            Get the latest posts delivered to your inbox.
+          </p>
+          <form class="flex flex-col gap-2" onsubmit="subscribe(event)">
+            <input
+              type="email"
+              placeholder="your@email.com"
+              required
+              class="p-3 border border-black/10 rounded-brutal text-sm outline-none focus:border-ink"
+            >
+            <button
+              type="submit"
+              class="p-3 bg-ink text-parchment border-none rounded-brutal text-sm font-medium cursor-pointer transition-transform duration-150 hover:-translate-y-px"
+            >
+              Subscribe
+            </button>
+          </form>
+        </div>
+      </aside>
+    </div>
+
+    <script src="/toast.js"></script>
+    <script>
+      async function loadPage() {
+        const slug = window.location.pathname.replace('/page/', '');
+        try {
+          const res = await fetch('/api/public/pages/' + slug);
+          const data = await res.json();
+
+          if (!data.success || !data.data) {
+            document.getElementById('content').innerHTML =
+              '<div class="text-center py-[104px]"><h2 class="font-serif text-3xl mb-2">Page not found</h2><p class="text-muted"><a href="/" class="text-ink">Back to home</a></p></div>';
+            return;
+          }
+
+          const page = data.data;
+          document.title = (page.meta_title || page.title) + ' - Meridian';
+          var desc = page.meta_description || '';
+          document.querySelector('meta[name="description"]').setAttribute('content', desc);
+          document.querySelector('meta[property="og:title"]').setAttribute(
+            'content',
+            page.title,
+          );
+          document.querySelector('meta[property="og:description"]').setAttribute(
+            'content',
+            desc,
+          );
+
+          const blocks = Array.isArray(page.content) ? page.content : [];
+          const html = blocks.map(function (block) {
+            var text = typeof block.content === 'string' ? block.content : '';
+            switch (block.type) {
+              case 'heading':
+                return '<h2 class="font-serif text-3xl font-normal mb-6 mt-12">' + text +
+                  '</h2>';
+              case 'quote':
+                return '<blockquote class="border-l-[3px] border-ink pl-6 my-8 italic text-muted text-lg">' +
+                  text + '</blockquote>';
+              case 'code':
+                return '<pre class="bg-linen p-6 rounded-brutal overflow-x-auto my-8 text-sm font-mono leading-relaxed"><code>' +
+                  text.replace(/</g, '&lt;') + '</code></pre>';
+              case 'divider':
+                return '<hr class="my-12 border-t border-black/[0.08]">';
+              case 'html':
+                return text;
+              default:
+                return '<p class="text-[17px] leading-[1.8] mb-6">' + text + '</p>';
+            }
+          }).join('');
+
+          document.getElementById('content').innerHTML =
+            '<h1 class="font-serif text-[48px] font-normal leading-tight tracking-tight mb-12">' +
+            page.title + '</h1>' +
+            '<div class="max-w-prose">' + html + '</div>';
+        } catch (err) {
+          document.getElementById('content').innerHTML =
+            '<div class="text-center py-[104px] text-muted">Error loading page</div>';
+        }
+      }
+
+      async function subscribe(e) {
+        e.preventDefault();
+        var email = e.target.querySelector('input').value;
+        try {
+          var res = await fetch('/api/public/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email }),
+          });
+          var data = await res.json();
+          toast.success(
+            data.data?.alreadySubscribed
+              ? 'Already subscribed!'
+              : 'Thanks for subscribing!',
+          );
+          e.target.reset();
+        } catch (err) {
+          toast.error('Error. Please try again.');
+        }
+      }
+
+      async function loadSiteSettings() {
+        try {
+          var res = await fetch('/api/public/site');
+          var data = await res.json();
+          if (data.success && data.data) {
+            var s = data.data;
+            var titleEl = document.getElementById('siteTitle');
+            var descEl = document.getElementById('siteDesc');
+            if (titleEl) titleEl.textContent = s.title;
+            if (descEl) descEl.textContent = s.description;
+
+            var links = s.socialLinks || {};
+            var linksHtml = '';
+            var labels = {
+              twitter: 'Twitter',
+              github: 'GitHub',
+              linkedin: 'LinkedIn',
+              youtube: 'YouTube',
+            };
+            for (var key in labels) {
+              if (links[key]) {
+                linksHtml += '<a href="' + links[key] +
+                  '" target="_blank" rel="noopener" class="text-muted no-underline text-[13px] hover:text-ink transition-colors duration-150">' +
+                  labels[key] + '</a>';
+              }
+            }
+            linksHtml +=
+              '<a href="/api/public/rss" class="text-muted no-underline text-[13px] hover:text-ink transition-colors duration-150">RSS</a>';
+            var socialEl = document.getElementById('socialLinks');
+            if (socialEl) socialEl.innerHTML = linksHtml;
+          }
+        } catch (e) {}
+      }
+
+      loadPage();
+      loadSiteSettings();
+    </script>
+  </body>
+</html>

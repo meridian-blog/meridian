@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meridian</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <meta name="description" content="">
+    <meta property="og:title" content="">
+    <meta property="og:description" content="">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="">
+    <meta property="og:image" content="">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="">
+    <meta name="twitter:description" content="">
+    <meta name="twitter:image" content="">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    >
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="/api/public/rss">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              parchment: '#FAF9F6',
+              linen: '#F2F0EB',
+              ink: '#1A1A1A',
+              muted: '#6B6B6B',
+              crimson: '#C41E3A',
+              forest: '#2D5016',
+              gold: '#B8860B',
+            },
+            fontFamily: {
+              serif: ['Crimson Text', 'Georgia', 'serif'],
+              sans: ['Inter', '-apple-system', 'sans-serif'],
+            },
+            borderRadius: {
+              brutal: '2px',
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      @media (max-width: 1100px) {
+        .layout {
+          grid-template-columns: 1fr !important;
+        }
+        .sidebar-left, .sidebar-right {
+          display: none !important;
+        }
+        .mobile-header {
+          display: flex !important;
+        }
+      }
+      .drop-cap::first-letter {
+        float: left;
+        font-family: 'Crimson Text', Georgia, serif;
+        font-size: 4.5rem;
+        line-height: 0.8;
+        padding-right: 0.5rem;
+        padding-top: 0.1em;
+      }
+      .post-tag:not(:last-child)::after {
+        content: '\00B7';
+        margin-left: 0.5rem;
+        color: #6b6b6b;
+      }
+      .post-footer span:not(:last-child)::after {
+        content: '\00B7';
+        margin-left: 0.5rem;
+      }
+      /* Kudos button */
+      .kudos-btn {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        border: 2px solid rgba(0, 0, 0, 0.1);
+        background: transparent;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .kudos-btn:hover {
+        border-color: #c41e3a;
+        background: rgba(196, 30, 58, 0.05);
+        transform: scale(1.1);
+      }
+      .kudos-btn.given {
+        border-color: #c41e3a;
+        background: #c41e3a;
+      }
+      .kudos-btn.given svg {
+        fill: #faf9f6;
+        stroke: #faf9f6;
+      }
+      .kudos-btn.pop {
+        animation: kudos-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+      @keyframes kudos-pop {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.3);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+      .kudos-burst {
+        position: absolute;
+        pointer-events: none;
+        width: 80px;
+        height: 80px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+      .kudos-burst circle {
+        fill: #c41e3a;
+        opacity: 0;
+      }
+      .kudos-btn.pop .kudos-burst circle {
+        animation: burst 0.5s ease-out forwards;
+      }
+      @keyframes burst {
+        0% {
+          opacity: 0.8;
+          r: 2;
+        }
+        100% {
+          opacity: 0;
+          r: 0;
+        }
+      }
+      .kudos-burst circle:nth-child(1) {
+        animation-delay: 0s;
+      }
+      .kudos-burst circle:nth-child(2) {
+        animation-delay: 0.05s;
+      }
+      .kudos-burst circle:nth-child(3) {
+        animation-delay: 0.1s;
+      }
+      .kudos-burst circle:nth-child(4) {
+        animation-delay: 0.05s;
+      }
+      .kudos-burst circle:nth-child(5) {
+        animation-delay: 0.1s;
+      }
+      .kudos-burst circle:nth-child(6) {
+        animation-delay: 0.15s;
+      }
+    </style>
+  </head>
+  <body class="font-sans text-base leading-relaxed text-ink bg-parchment antialiased">
+    <div
+      class="fixed top-0 left-0 h-0.5 bg-crimson z-50 transition-[width] duration-100"
+      id="readingProgress"
+      style="width: 0%"
+    >
+    </div>
+
+    <div
+      class="mobile-header hidden px-6 py-4 border-b border-black/[0.06] justify-between items-center"
+    >
+      <h1 class="font-serif text-2xl font-semibold flex items-center gap-2">
+        <span
+          class="inline-flex items-center justify-center w-7 h-7 bg-ink text-parchment font-serif font-semibold text-base rounded-brutal leading-none"
+        >M</span>
+        <a href="/" class="text-inherit no-underline">Meridian</a>
+      </h1>
+      <button class="bg-transparent border-none text-xl cursor-pointer text-ink">&#9776;</button>
+    </div>
+
+    <div
+      class="layout grid grid-cols-[280px_minmax(auto,720px)_1fr] gap-16 max-w-[1400px] mx-auto p-10"
+    >
+      <!-- Left Sidebar -->
+      <aside class="sidebar-left sticky top-10 h-fit">
+        <a href="/" class="no-underline text-inherit flex items-center gap-2 mb-2">
+          <span
+            class="inline-flex items-center justify-center w-8 h-8 bg-ink text-parchment font-serif font-semibold text-lg rounded-brutal leading-none"
+          >M</span>
+          <h1
+            id="siteTitle"
+            class="font-serif text-4xl font-semibold tracking-tight leading-none"
+          >
+            Meridian
+          </h1>
+        </a>
+        <p id="siteDesc" class="text-muted text-sm leading-normal mb-16 max-w-[220px]">
+          A modern publishing platform with zero platform fees.
+        </p>
+
+        <nav class="flex flex-col gap-1">
+          <a
+            href="/"
+            class="py-2 text-muted text-sm no-underline transition-colors duration-150 hover:text-ink"
+          >Home</a>
+          <a
+            href="/search"
+            class="py-2 text-muted text-sm no-underline transition-colors duration-150 hover:text-ink"
+          >Search</a>
+          <a
+            href="/login"
+            class="py-2 text-muted text-sm no-underline transition-colors duration-150 hover:text-ink"
+          >Admin</a>
+        </nav>
+
+        <div class="sidebar-footer mt-[104px] pt-10 border-t border-black/[0.06]">
+          <div class="text-[10px] uppercase tracking-[0.15em] text-muted mb-2">Follow</div>
+          <div id="socialLinks" class="flex gap-6">
+            <a
+              href="/api/public/rss"
+              class="text-muted no-underline text-[13px] hover:text-ink transition-colors duration-150"
+            >RSS</a>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main min-h-screen" id="content">
+        <div class="text-center py-[104px] text-muted">Loading...</div>
+      </main>
+
+      <!-- Right Sidebar -->
+      <aside class="sidebar-right sticky top-10 h-fit">
+        <div id="memberWidget" class="bg-white border border-black/[0.06] p-8">
+          <!-- Populated by JS -->
+        </div>
+      </aside>
+    </div>
+
+    <script src="/toast.js"></script>
+    <script>
+      // Member auth
+      function getMemberToken() {
+        return localStorage.getItem('meridian_member_token');
+      }
+      function setMemberToken(t) {
+        localStorage.setItem('meridian_member_token', t);
+      }
+      function clearMemberToken() {
+        localStorage.removeItem('meridian_member_token');
+      }
+
+      function renderMemberWidget() {
+        var el = document.getElementById('memberWidget');
+        var token = getMemberToken();
+        if (token) {
+          fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } })
+            .then(function (r) {
+              return r.json();
+            })
+            .then(function (data) {
+              if (data.success && data.data) {
+                var m = data.data;
+                el.innerHTML =
+                  '<div class="text-[10px] uppercase tracking-[0.15em] text-muted mb-4">Member</div>' +
+                  '<div class="text-sm font-medium text-ink mb-1">' + (m.name || m.email) +
+                  '</div>' +
+                  '<div class="text-xs text-muted mb-4">' + (m.tier || 'free') +
+                  ' tier</div>' +
+                  '<button onclick="memberLogout()" class="w-full p-2 border border-black/10 rounded-brutal text-sm text-muted cursor-pointer bg-transparent hover:border-ink hover:text-ink transition-all duration-150">Sign Out</button>';
+              } else {
+                clearMemberToken();
+                renderMemberWidget();
+              }
+            })
+            .catch(function () {
+              clearMemberToken();
+              renderMemberWidget();
+            });
+        } else {
+          el.innerHTML =
+            '<div class="text-[10px] uppercase tracking-[0.15em] text-muted mb-6">Newsletter</div>' +
+            '<p class="text-sm text-muted mb-6 leading-normal">Subscribe for free to read all posts.</p>' +
+            '<form class="flex flex-col gap-2" onsubmit="memberSubscribe(event)">' +
+            '<input type="email" placeholder="your@email.com" required class="p-3 border border-black/10 rounded-brutal text-sm outline-none focus:border-ink">' +
+            '<button type="submit" class="p-3 bg-ink text-parchment border-none rounded-brutal text-sm font-medium cursor-pointer transition-transform duration-150 hover:-translate-y-px">Subscribe</button>' +
+            '</form>' +
+            '<div class="mt-4 text-center">' +
+            '<button onclick="showMemberLogin()" class="text-xs text-muted hover:text-ink cursor-pointer bg-transparent border-none underline">Already a member? Sign in</button>' +
+            '</div>';
+        }
+      }
+
+      function showMemberLogin() {
+        var el = document.getElementById('memberWidget');
+        el.innerHTML =
+          '<div class="text-[10px] uppercase tracking-[0.15em] text-muted mb-6">Member Sign In</div>' +
+          '<form class="flex flex-col gap-2" onsubmit="memberLogin(event)">' +
+          '<input type="email" placeholder="your@email.com" required class="p-3 border border-black/10 rounded-brutal text-sm outline-none focus:border-ink">' +
+          '<button type="submit" class="p-3 bg-ink text-parchment border-none rounded-brutal text-sm font-medium cursor-pointer transition-transform duration-150 hover:-translate-y-px">Sign In</button>' +
+          '</form>' +
+          '<div class="mt-4 text-center">' +
+          '<button onclick="renderMemberWidget()" class="text-xs text-muted hover:text-ink cursor-pointer bg-transparent border-none underline">Back</button>' +
+          '</div>';
+      }
+
+      async function memberSubscribe(e) {
+        e.preventDefault();
+        var email = e.target.querySelector('input').value;
+        try {
+          var res = await fetch('/api/auth/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email }),
+          });
+          var data = await res.json();
+          if (data.success && data.data?.token) {
+            setMemberToken(data.data.token);
+            renderMemberWidget();
+            loadPost(); // reload post to unlock content
+          } else if (data.success) {
+            var lr = await fetch('/api/auth/member/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: email }),
+            });
+            var ld = await lr.json();
+            if (ld.success && ld.data?.token) {
+              setMemberToken(ld.data.token);
+              renderMemberWidget();
+              loadPost();
+            } else toast.info('Already subscribed! Check your email.');
+          }
+        } catch (err) {
+          toast.error('Error. Please try again.');
+        }
+      }
+
+      async function memberLogin(e) {
+        e.preventDefault();
+        var email = e.target.querySelector('input').value;
+        try {
+          var res = await fetch('/api/auth/member/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email }),
+          });
+          var data = await res.json();
+          if (data.success && data.data?.token) {
+            setMemberToken(data.data.token);
+            renderMemberWidget();
+            loadPost();
+          } else toast.error(data.error?.message || 'Not found. Subscribe first!');
+        } catch (err) {
+          toast.error('Error. Please try again.');
+        }
+      }
+
+      function memberLogout() {
+        clearMemberToken();
+        renderMemberWidget();
+        loadPost();
+      }
+
+      function setMeta(name, content) {
+        var el = document.querySelector('meta[name="' + name + '"]') ||
+          document.querySelector('meta[property="' + name + '"]');
+        if (el) el.setAttribute('content', content || '');
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+      }
+
+      function formatDate(dateStr) {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-US', {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        });
+      }
+
+      function sanitizeInlineHtml(html) {
+        if (!html) return '';
+        const allowed = ['b', 'i', 'em', 'strong', 'code', 'mark', 'a', 'br', 'u', 's'];
+        return html.replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g, function (tag, name) {
+          return allowed.includes(name.toLowerCase()) ? tag : escapeHtml(tag);
+        });
+      }
+
+      function renderContentBlocks(blocks) {
+        if (!blocks || !blocks.length) return '';
+        let isFirstText = true;
+
+        return blocks.map((block) => {
+          switch (block.type) {
+            case 'text': {
+              const content = sanitizeInlineHtml(block.content || '');
+              const paragraphs = content.split('\n\n').filter((p) => p.trim());
+              const html = paragraphs.map((p, i) => {
+                const classes = 'text-base leading-relaxed mb-8 max-w-[65ch]';
+                if (isFirstText && i === 0) {
+                  return `<p class="${classes} drop-cap">${p}</p>`;
+                }
+                return `<p class="${classes}">${p}</p>`;
+              }).join('');
+              if (isFirstText) isFirstText = false;
+              return html;
+            }
+            case 'heading': {
+              const level = (block.props && block.props.level) || 2;
+              const sizes = { 2: 'text-[28px]', 3: 'text-[22px]', 4: 'text-[18px]' };
+              const size = sizes[level] || sizes[2];
+              const tag = 'h' + level;
+              return `<${tag} class="font-serif ${size} font-semibold leading-tight mt-12 mb-4">${
+                sanitizeInlineHtml(block.content || '')
+              }</${tag}>`;
+            }
+            case 'quote':
+              return `<blockquote class="border-l-4 border-ink pl-8 my-10 font-serif text-2xl leading-relaxed italic">${
+                sanitizeInlineHtml(block.content || '')
+              }</blockquote>`;
+            case 'code':
+              return `<pre class="bg-linen p-6 rounded-brutal text-sm font-mono leading-relaxed overflow-x-auto"><code>${
+                escapeHtml(block.content)
+              }</code></pre>`;
+            case 'divider':
+              return `<hr class="border-t border-black/[0.06] my-12 border-b-0 border-l-0 border-r-0">`;
+            case 'image': {
+              const url = block.props && block.props.url ? block.props.url : '';
+              const alt = block.props && block.props.alt ? escapeHtml(block.props.alt) : '';
+              const caption = block.props && block.props.caption ? block.props.caption : '';
+              const stretched = block.props && block.props.stretched;
+              const widthClass = stretched ? 'w-full' : 'max-w-[65ch]';
+              let html =
+                `<figure class="my-10 ${widthClass}"><img src="${url}" alt="${alt}" class="w-full rounded-brutal">`;
+              if (caption) {
+                html +=
+                  `<figcaption class="text-center text-sm text-muted mt-3">${caption}</figcaption>`;
+              }
+              html += `</figure>`;
+              return html;
+            }
+            case 'html':
+              return `<div class="prose my-8 max-w-[65ch]">${block.content || ''}</div>`;
+            default:
+              return `<p class="text-base leading-relaxed mb-8 max-w-[65ch]">${
+                escapeHtml(block.content || '')
+              }</p>`;
+          }
+        }).join('');
+      }
+
+      async function loadPost() {
+        // Support both /post/:slug and /:slug permalink formats
+        const pathParts = window.location.pathname.replace(/^\/|\/$/g, '').split('/');
+        const slug = pathParts[pathParts.length - 1];
+        if (!slug) {
+          render404();
+          return;
+        }
+
+        try {
+          var headers = {};
+          var memberToken = getMemberToken();
+          if (memberToken) headers['Authorization'] = 'Bearer ' + memberToken;
+
+          const res = await fetch(`/api/public/posts/${encodeURIComponent(slug)}`, {
+            headers: headers,
+          });
+          if (!res.ok) {
+            render404();
+            return;
+          }
+
+          const data = await res.json();
+          if (!data.success || !data.data) {
+            render404();
+            return;
+          }
+
+          const post = data.data;
+          const title = post.metaTitle || post.title;
+          const desc = post.metaDescription || post.excerpt || '';
+          const url = window.location.href;
+          const image = post.coverImage || '';
+
+          document.title = `${title} - Meridian`;
+          setMeta('description', desc);
+          setMeta('og:title', title);
+          setMeta('og:description', desc);
+          setMeta('og:url', url);
+          setMeta('og:image', image);
+          setMeta('twitter:title', title);
+          setMeta('twitter:description', desc);
+          setMeta('twitter:image', image);
+
+          if (post.requiresSubscription) {
+            renderPaywall(post);
+          } else {
+            renderPost(post);
+          }
+        } catch (err) {
+          render404();
+        }
+      }
+
+      function renderPaywall(post) {
+        var level = post.accessLevel || 'members';
+        var isPaid = level === 'paid' || level === 'tiers';
+        var isLoggedIn = !!getMemberToken();
+
+        var msg = isPaid
+          ? 'This post is for paid subscribers.'
+          : 'This post is for members only. Subscribe for free to unlock it.';
+
+        document.getElementById('content').innerHTML = `
+        <article>
+          <h1 class="font-serif text-[42px] font-normal leading-tight tracking-tight mb-4">${
+          escapeHtml(post.title)
+        }</h1>
+          ${
+          post.excerpt
+            ? `<p class="text-xl text-muted/80 font-normal leading-relaxed mb-6">${
+              escapeHtml(post.excerpt)
+            }</p>`
+            : ''
+        }
+          <div class="post-footer flex gap-2 text-[13px] text-muted mb-10 pb-10 border-b border-black/[0.06]">
+            <span>${escapeHtml(post.authorName || 'Anonymous')}</span>
+            <span>${post.publishedAt ? formatDate(post.publishedAt) : ''}</span>
+            ${post.readingTime ? `<span>${post.readingTime} min read</span>` : ''}
+          </div>
+          <div class="text-center py-16 px-8 bg-linen rounded-brutal my-10">
+            <div class="font-serif text-2xl mb-4">Member-only content</div>
+            <p class="text-muted mb-6">${msg}</p>
+            <div id="paywallAction"></div>
+          </div>
+        </article>
+      `;
+
+        // Render the right action
+        var actionEl = document.getElementById('paywallAction');
+        if (!isLoggedIn && !isPaid) {
+          // Free members-only: show subscribe form
+          actionEl.innerHTML =
+            '<form class="flex gap-2 max-w-md mx-auto" onsubmit="memberSubscribe(event)">' +
+            '<input type="email" placeholder="your@email.com" required class="flex-1 p-3 border border-black/10 rounded-brutal text-sm outline-none focus:border-ink">' +
+            '<button type="submit" class="p-3 bg-ink text-parchment rounded-brutal text-sm font-medium cursor-pointer hover:-translate-y-px transition-transform duration-150">Subscribe Free</button>' +
+            '</form>';
+        } else if (isPaid) {
+          // Paid content: show tier cards
+          loadPaywallTiers(actionEl);
+        } else {
+          // Logged in but wrong tier
+          actionEl.innerHTML =
+            '<p class="text-muted">Your current tier does not include access. Upgrade below.</p>';
+          loadPaywallTiers(actionEl);
+        }
+      }
+
+      async function loadPaywallTiers(container) {
+        try {
+          var res = await fetch('/api/stripe/tiers');
+          var data = await res.json();
+          if (!data.success || !data.data.length) {
+            container.innerHTML +=
+              '<p class="text-sm text-muted mt-4">No paid tiers available yet.</p>';
+            return;
+          }
+
+          var tiersHtml = data.data.map(function (tier) {
+            var price = (tier.price / 100).toFixed(2);
+            var interval = tier.interval === 'year' ? '/yr' : '/mo';
+            var benefits = (tier.benefits || []).map(function (b) {
+              return '<li class="text-sm text-muted">' + escapeHtml(b) + '</li>';
+            }).join('');
+
+            return '<div class="bg-white border border-black/[0.06] rounded-brutal p-6 text-left">' +
+              '<div class="font-serif text-xl mb-1">' + escapeHtml(tier.name) + '</div>' +
+              '<div class="text-2xl font-semibold mb-2">$' + price +
+              '<span class="text-sm font-normal text-muted">' + interval + '</span></div>' +
+              (tier.description
+                ? '<p class="text-sm text-muted mb-4">' + escapeHtml(tier.description) +
+                  '</p>'
+                : '') +
+              (benefits ? '<ul class="mb-4 space-y-1">' + benefits + '</ul>' : '') +
+              '<button onclick="startCheckout(\'' + tier.id +
+              '\')" class="w-full p-3 bg-ink text-parchment rounded-brutal text-sm font-medium cursor-pointer hover:-translate-y-px transition-transform duration-150">' +
+              (data.stripeEnabled ? 'Subscribe' : 'Coming Soon') +
+              '</button>' +
+              '</div>';
+          }).join('');
+
+          container.innerHTML +=
+            '<div class="grid grid-cols-1 gap-4 max-w-lg mx-auto mt-6">' + tiersHtml +
+            '</div>';
+        } catch (err) {
+          container.innerHTML +=
+            '<p class="text-sm text-muted mt-4">Unable to load subscription options.</p>';
+        }
+      }
+
+      async function startCheckout(tierId) {
+        // Get or ask for email
+        var token = getMemberToken();
+        var email = '';
+
+        if (token) {
+          try {
+            var meRes = await fetch('/api/auth/me', {
+              headers: { 'Authorization': 'Bearer ' + token },
+            });
+            var meData = await meRes.json();
+            if (meData.success) email = meData.data.email;
+          } catch (e) { /* ignore */ }
+        }
+
+        if (!email) {
+          email = prompt('Enter your email to subscribe:');
+          if (!email) return;
+        }
+
+        try {
+          var res = await fetch('/api/stripe/checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tierId: tierId,
+              email: email,
+              successUrl: window.location.href,
+              cancelUrl: window.location.href,
+            }),
+          });
+          var data = await res.json();
+          if (data.success && data.data.url) {
+            window.location.href = data.data.url;
+          } else {
+            toast.error(data.error?.message || 'Failed to start checkout');
+          }
+        } catch (err) {
+          toast.error('Failed to start checkout. Please try again.');
+        }
+      }
+
+      function render404() {
+        document.getElementById('content').innerHTML = `
+        <div class="text-center py-[104px]">
+          <h2 class="font-serif text-[42px] font-normal mb-4">Post Not Found</h2>
+          <p class="text-muted mb-8">The post you're looking for doesn't exist or has been removed.</p>
+          <a href="/" class="text-ink underline hover:text-muted transition-colors duration-150">Back to Home</a>
+        </div>
+      `;
+      }
+
+      function renderPost(post) {
+        const categories = (post.tags || []).map((t) =>
+          `<span class="post-tag text-[10px] uppercase tracking-[0.15em] text-muted">${
+            escapeHtml(t.name)
+          }</span>`
+        ).join('');
+
+        const coverImage = post.coverImage
+          ? `<div class="my-10 -mx-8"><img src="${escapeHtml(post.coverImage)}" alt="${
+            escapeHtml(post.title)
+          }" class="w-full max-w-none rounded-brutal"></div>`
+          : '';
+
+        const contentHtml = Array.isArray(post.content)
+          ? renderContentBlocks(post.content)
+          : `<div class="text-base leading-relaxed mb-8 max-w-[65ch]">${
+            escapeHtml(String(post.content || ''))
+          }</div>`;
+
+        const tagPills = (post.tags || []).map((t) =>
+          `<span class="inline-block px-3 py-1 text-xs text-muted border border-black/10 rounded-full mr-2 mb-2">${
+            escapeHtml(t.name)
+          }</span>`
+        ).join('');
+
+        const encodedUrl = encodeURIComponent(window.location.href);
+        const encodedTitle = encodeURIComponent(post.title);
+
+        document.getElementById('content').innerHTML = `
+        <article>
+          ${categories ? `<div class="flex gap-2 mb-4">${categories}</div>` : ''}
+
+          <h1 class="font-serif text-[42px] font-normal leading-tight tracking-tight mb-4">${
+          escapeHtml(post.title)
+        }</h1>
+
+          ${
+          post.excerpt
+            ? `<p class="text-xl text-muted/80 font-normal leading-relaxed mb-6">${
+              escapeHtml(post.excerpt)
+            }</p>`
+            : ''
+        }
+
+          <div class="post-footer flex gap-2 text-[13px] text-muted mb-10 pb-10 border-b border-black/[0.06]">
+            <span>${escapeHtml(post.authorName || 'Anonymous')}</span>
+            <span>${post.publishedAt ? formatDate(post.publishedAt) : ''}</span>
+            ${post.readingTime ? `<span>${post.readingTime} min read</span>` : ''}
+          </div>
+
+          ${coverImage}
+
+          <div class="post-content">
+            ${contentHtml}
+          </div>
+
+          <!-- Kudos -->
+          <div class="flex items-center gap-4 my-16 justify-center">
+            <button class="kudos-btn ${
+          hasGivenKudos(post.slug) ? 'given' : ''
+        }" id="kudosBtn" onclick="giveKudos('${escapeHtml(post.slug)}')">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${
+          hasGivenKudos(post.slug) ? '#FAF9F6' : '#C41E3A'
+        }" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+              </svg>
+              <svg class="kudos-burst" viewBox="0 0 80 80">
+                <circle cx="40" cy="8" r="3"/>
+                <circle cx="62" cy="20" r="3"/>
+                <circle cx="66" cy="46" r="3"/>
+                <circle cx="18" cy="20" r="3"/>
+                <circle cx="14" cy="46" r="3"/>
+                <circle cx="40" cy="68" r="3"/>
+              </svg>
+            </button>
+            <span id="kudosCount" class="text-sm text-muted">${
+          post.kudosCount || 0
+        } kudos</span>
+          </div>
+
+          <footer class="mt-16 pt-10 border-t border-black/[0.06]">
+            <div class="flex items-center justify-between flex-wrap gap-4 mb-12">
+              <div>${tagPills}</div>
+              <div class="flex gap-4">
+                <a href="https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}" target="_blank" rel="noopener noreferrer" class="text-muted text-sm no-underline hover:text-ink transition-colors duration-150">Share on Twitter</a>
+                <a href="https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}" target="_blank" rel="noopener noreferrer" class="text-muted text-sm no-underline hover:text-ink transition-colors duration-150">Share on LinkedIn</a>
+              </div>
+            </div>
+
+            <div class="bg-white border border-black/[0.06] p-10 text-center">
+              <h3 class="font-serif text-2xl font-normal mb-2">Enjoyed this post?</h3>
+              <p class="text-muted text-sm mb-6">Subscribe to get new posts delivered to your inbox.</p>
+              <form class="flex gap-2 max-w-md mx-auto" onsubmit="subscribe(event)">
+                <input type="email" placeholder="your@email.com" required class="flex-1 p-3 border border-black/10 rounded-brutal text-sm outline-none focus:border-ink">
+                <button type="submit" class="p-3 px-6 bg-ink text-parchment border-none rounded-brutal text-sm font-medium cursor-pointer transition-transform duration-150 hover:-translate-y-px">Subscribe</button>
+              </form>
+            </div>
+          </footer>
+        </article>
+      `;
+      }
+
+      async function subscribe(e) {
+        e.preventDefault();
+        const email = e.target.querySelector('input').value;
+
+        try {
+          const res = await fetch('/api/public/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          });
+
+          const data = await res.json();
+          toast.success(
+            data.data?.alreadySubscribed
+              ? 'Already subscribed!'
+              : 'Thanks for subscribing!',
+          );
+          e.target.reset();
+        } catch (err) {
+          toast.error('Error. Please try again.');
+        }
+      }
+
+      // Kudos
+      function hasGivenKudos(slug) {
+        var kudos = JSON.parse(localStorage.getItem('meridian_kudos') || '{}');
+        return !!kudos[slug];
+      }
+
+      function markKudosGiven(slug) {
+        var kudos = JSON.parse(localStorage.getItem('meridian_kudos') || '{}');
+        kudos[slug] = true;
+        localStorage.setItem('meridian_kudos', JSON.stringify(kudos));
+      }
+
+      async function giveKudos(slug) {
+        if (hasGivenKudos(slug)) return;
+
+        var btn = document.getElementById('kudosBtn');
+        btn.classList.add('given', 'pop');
+        btn.querySelector('svg:first-child').setAttribute('stroke', '#FAF9F6');
+        setTimeout(function () {
+          btn.classList.remove('pop');
+        }, 500);
+
+        markKudosGiven(slug);
+
+        try {
+          var res = await fetch(
+            '/api/public/posts/' + encodeURIComponent(slug) + '/kudos',
+            { method: 'POST' },
+          );
+          var data = await res.json();
+          if (data.success) {
+            document.getElementById('kudosCount').textContent = data.data.kudosCount +
+              ' kudos';
+          }
+        } catch (e) {}
+      }
+
+      // Reading progress bar
+      window.addEventListener('scroll', () => {
+        const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+        const height = document.documentElement.scrollHeight -
+          document.documentElement.clientHeight;
+        const scrolled = height > 0 ? (winScroll / height) * 100 : 0;
+        document.getElementById('readingProgress').style.width = scrolled + '%';
+      });
+
+      async function loadSiteSettings() {
+        try {
+          var res = await fetch('/api/public/site');
+          var data = await res.json();
+          if (data.success && data.data) {
+            var s = data.data;
+            var titleEl = document.getElementById('siteTitle');
+            var descEl = document.getElementById('siteDesc');
+            if (titleEl) titleEl.textContent = s.title;
+            if (descEl) descEl.textContent = s.description;
+            document.title = s.title;
+
+            var links = s.socialLinks || {};
+            var linksHtml = '';
+            var labels = {
+              twitter: 'Twitter',
+              github: 'GitHub',
+              linkedin: 'LinkedIn',
+              youtube: 'YouTube',
+            };
+            for (var key in labels) {
+              if (links[key]) {
+                linksHtml += '<a href="' + links[key] +
+                  '" target="_blank" rel="noopener" class="text-muted no-underline text-[13px] hover:text-ink transition-colors duration-150">' +
+                  labels[key] + '</a>';
+              }
+            }
+            linksHtml +=
+              '<a href="/api/public/rss" class="text-muted no-underline text-[13px] hover:text-ink transition-colors duration-150">RSS</a>';
+            var socialEl = document.getElementById('socialLinks');
+            if (socialEl) socialEl.innerHTML = linksHtml;
+          }
+        } catch (e) {}
+      }
+
+      renderMemberWidget();
+      loadSiteSettings().then(function () {
+        loadPost();
+      });
+    </script>
+  </body>
+</html>
