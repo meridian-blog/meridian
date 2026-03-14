@@ -204,16 +204,16 @@ make db-reset     # Reset database
 
 ### Railway
 
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/meridian-blog/meridian)
-
-1. Click the button above — Railway reads `railway.json` and builds from Dockerfile
-2. Add a **PostgreSQL** plugin (click "New" > "Database" > PostgreSQL)
-3. Set environment variables in the service Settings > Variables:
+1. Go to [railway.app](https://railway.app) and create a **New Project**
+2. Select **Deploy from GitHub Repo** and pick `meridian-blog/meridian`
+3. Railway detects the Dockerfile and `railway.json` — click **Deploy**
+4. Once deployed, click **New** > **Database** > **PostgreSQL** to add a database
+5. Railway auto-sets `DATABASE_URL`. Add these in your service **Variables**:
    - `APP_SECRET` — run `openssl rand -base64 48` to generate
    - `APP_ENV` — `production`
    - `ADMIN_EMAIL` — your email
    - `ADMIN_PASSWORD` — strong password
-4. Railway auto-deploys. Migrations run on every start.
+6. Railway redeploys automatically. Migrations run on every start.
 
 ### Render
 
