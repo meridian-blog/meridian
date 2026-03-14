@@ -1,5 +1,7 @@
 # Meridian Blog Engine
 
+[![CI](https://github.com/meridian-blog/meridian/actions/workflows/ci.yml/badge.svg)](https://github.com/meridian-blog/meridian/actions/workflows/ci.yml)
+
 A self-hosted, zero-platform-fee publishing platform. Own your content, own your audience, keep 100%
 of your revenue.
 
