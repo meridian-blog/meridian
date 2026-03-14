@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: '2.1.4'
+
+      - name: Check formatting
+        run: deno fmt --check
+
+      - name: Lint
+        run: deno lint
+
+      - name: Type check
+        run: |
+          deno check backend/main.ts
+          deno check db/migrate.ts
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: meridian
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: meridian
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U meridian -d meridian"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: '2.1.4'
+
+      - name: Run unit tests
+        run: deno test --allow-all tests/shared_test.ts
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgres://meridian:test_password@localhost:5432/meridian
+          ADMIN_EMAIL: test@meridian.blog
+          ADMIN_PASSWORD: testpassword123
+          ADMIN_NAME: Test Admin
+        run: deno run --allow-all db/migrate.ts
+
+      - name: Run API tests
+        env:
+          DATABASE_URL: postgres://meridian:test_password@localhost:5432/meridian
+          APP_SECRET: ci-test-secret-key-minimum-32-characters-long
+          APP_ENV: development
+          APP_PORT: 8000
+        run: |
+          deno run --allow-all backend/main.ts &
+          sleep 5
+          deno test --allow-all tests/api_test.ts

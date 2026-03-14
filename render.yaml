@@ -1,0 +1,39 @@
+# Render Blueprint – Meridian Blog Engine
+#
+# Deploy with the "New Blueprint Instance" button on Render,
+# or use: https://render.com/deploy?repo=https://github.com/meridian-blog/meridian
+#
+# NOTE: Docker runtime requires a Starter plan ($7/mo) or higher.
+# After deploy, set ADMIN_EMAIL in the Render dashboard environment variables.
+
+databases:
+  - name: meridian-db
+    plan: free
+    databaseName: meridian
+    postgresMajorVersion: 16
+
+services:
+  - type: web
+    name: meridian
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    healthCheckPath: /health
+    preDeployCommand: 'deno run --allow-net --allow-read --allow-env --allow-write=./uploads db/migrate.ts'
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: meridian-db
+          property: connectionString
+      - key: APP_ENV
+        value: production
+      - key: APP_PORT
+        value: '8000'
+      - key: APP_SECRET
+        generateValue: true
+      - key: ADMIN_EMAIL
+        value: admin@meridian.blog
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: ADMIN_NAME
+        value: Admin

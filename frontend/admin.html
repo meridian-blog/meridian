@@ -527,6 +527,21 @@
               >
             </div>
 
+            <div class="mb-10">
+              <label class="block text-[11px] uppercase tracking-[0.1em] text-muted mb-2"
+              >Permalink Format</label>
+              <select
+                class="w-full py-3 text-[15px] bg-transparent border-0 border-b-2 border-linen outline-none transition-colors duration-200 font-sans text-ink focus:border-ink cursor-pointer"
+                id="settingsPermalinkFormat"
+              >
+                <option value="/:slug">/:slug (e.g. /my-post-title)</option>
+                <option value="/post/:slug">/post/:slug (e.g. /post/my-post-title)</option>
+              </select>
+              <p class="text-xs text-muted mt-2">
+                How post URLs are structured. Use /:slug for Jekyll-compatible URLs.
+              </p>
+            </div>
+
             <button
               class="bg-ink text-parchment px-6 py-3 text-sm font-medium rounded-brutal transition-all duration-150 hover:-translate-y-px hover:shadow-md cursor-pointer inline-flex items-center gap-2"
               onclick="saveSettings()"
@@ -1321,6 +1336,8 @@
               '';
             document.getElementById('settingsAccentColor').value = res.data.accentColor ||
               '#C41E3A';
+            document.getElementById('settingsPermalinkFormat').value =
+              res.data.permalinkFormat || '/:slug';
           }
         } catch (err) {
           console.error('Failed to load settings:', err);
@@ -1335,6 +1352,7 @@
               title: document.getElementById('settingsTitle').value,
               description: document.getElementById('settingsDescription').value,
               accentColor: document.getElementById('settingsAccentColor').value,
+              permalinkFormat: document.getElementById('settingsPermalinkFormat').value,
             }),
           });
           toast.success('Settings saved!');

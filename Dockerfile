@@ -46,7 +46,7 @@ ENV APP_PORT=8000
 
 # Healthcheck: verify the server is responding (uses Deno fetch, no curl needed)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD deno eval "const r = await fetch('http://localhost:8000/api/public/settings'); if (!r.ok) Deno.exit(1);"
+  CMD deno eval "const r = await fetch('http://localhost:8000/health'); if (!r.ok) Deno.exit(1);"
 
 # Default command: start the server only (no migrations).
 # To run migrations, use:

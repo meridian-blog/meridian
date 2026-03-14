@@ -72,7 +72,7 @@ router.get('/health', async (ctx) => {
   ctx.response.body = {
     status: dbHealthy ? 'healthy' : 'unhealthy',
     timestamp: new Date().toISOString(),
-    version: '0.1.0',
+    version: '0.0.1',
     services: {
       database: dbHealthy ? 'up' : 'down',
     },
@@ -202,7 +202,7 @@ app.use(async (ctx, next) => {
 console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║                                                            ║
-║   🔥 MERIDIAN BLOG ENGINE v0.1.0                          ║
+║   🔥 MERIDIAN BLOG ENGINE v0.0.1                          ║
 ║   Zero-Platform-Fee Publishing Infrastructure             ║
 ║                                                            ║
 ╠════════════════════════════════════════════════════════════╣

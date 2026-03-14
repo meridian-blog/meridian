@@ -1,0 +1,27 @@
+{$APP_DOMAIN} {
+  # Automatic HTTPS via Let's Encrypt (managed by Caddy)
+
+  # Enable gzip compression
+  encode gzip
+
+  # Security headers
+  header {
+    X-Frame-Options "SAMEORIGIN"
+    X-Content-Type-Options "nosniff"
+    X-XSS-Protection "1; mode=block"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    -Server
+  }
+
+  # Static file caching for uploads
+  @uploads path /uploads/*
+  header @uploads Cache-Control "public, max-age=2592000, immutable"
+
+  # Reverse proxy to the production app
+  reverse_proxy app-prod:8000 {
+    header_up X-Real-IP {remote_host}
+    header_up X-Forwarded-For {remote_host}
+    header_up X-Forwarded-Proto {scheme}
+  }
+}

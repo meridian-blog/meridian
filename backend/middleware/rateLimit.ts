@@ -46,7 +46,13 @@ export function createRateLimiter(options: RateLimitOptions) {
   }
 
   return async function rateLimitMiddleware(ctx: Context, next: Next) {
-    const ip = ctx.request.ip ?? 'unknown';
+    let ip = 'unknown';
+    try {
+      ip = ctx.request.ip;
+    } catch {
+      ip = ctx.request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+        ctx.request.headers.get('x-real-ip') || 'unknown';
+    }
     const now = Date.now();
 
     let entry = store.get(ip);

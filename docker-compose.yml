@@ -135,8 +135,9 @@ services:
     container_name: meridian-app-prod
     restart: unless-stopped
     profiles: ['production']
-    ports:
-      - '${APP_PORT:-8000}:8000'
+    # No ports exposed to host — Caddy reverse-proxies to this service
+    expose:
+      - '8000'
     environment:
       # WARNING: Every value with :? MUST be set in your .env file!
       - ADMIN_EMAIL=${ADMIN_EMAIL:?Set ADMIN_EMAIL in .env}
@@ -167,9 +168,30 @@ services:
     #   docker compose --profile production run --rm app-prod \
     #     deno run --allow-net --allow-read --allow-env db/migrate.ts
 
+  # Caddy - production (automatic HTTPS via Let's Encrypt)
+  caddy:
+    image: caddy:2-alpine
+    container_name: meridian-caddy
+    restart: unless-stopped
+    profiles: ['production']
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    environment:
+      - APP_DOMAIN=${APP_DOMAIN:?Set APP_DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app-prod
+
 volumes:
   postgres_data:
   redis_data:
   postgres_data_prod:
   redis_data_prod:
   uploads_data:
+  caddy_data:
+  caddy_config:

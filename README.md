@@ -198,6 +198,103 @@ make db-shell     # PostgreSQL shell
 make db-reset     # Reset database
 ```
 
+## Deploy
+
+### Railway
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/meridian-blog/meridian)
+
+1. Click the button above — Railway reads `railway.json` and builds from Dockerfile
+2. Add a **PostgreSQL** plugin (click "New" > "Database" > PostgreSQL)
+3. Set environment variables in the service Settings > Variables:
+   - `APP_SECRET` — run `openssl rand -base64 48` to generate
+   - `APP_ENV` — `production`
+   - `ADMIN_EMAIL` — your email
+   - `ADMIN_PASSWORD` — strong password
+4. Railway auto-deploys. Migrations run on every start.
+
+### Render
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/meridian-blog/meridian)
+
+1. Click the button — Render reads `render.yaml` and creates a PostgreSQL database + web service
+2. `APP_SECRET` and `ADMIN_PASSWORD` are auto-generated
+3. After deploy, go to Environment and set `ADMIN_EMAIL` to your real email
+
+### Fly.io
+
+```bash
+fly launch                              # Create app from fly.toml
+fly postgres create --name meridian-db  # Create Postgres
+fly postgres attach meridian-db         # Sets DATABASE_URL automatically
+fly secrets set \
+  APP_SECRET=$(openssl rand -base64 48) \
+  ADMIN_EMAIL=you@example.com \
+  ADMIN_PASSWORD=your-strong-password
+fly deploy                              # Build + deploy + run migrations
+```
+
+### Docker (Self-Hosted)
+
+```bash
+git clone https://github.com/meridian-blog/meridian.git
+cd meridian
+cp .env.example .env                    # Edit all [REQUIRED] values
+# Run migrations
+docker compose --profile production run --rm app-prod \
+  deno run --allow-net --allow-read --allow-env --allow-write=./uploads db/migrate.ts
+# Start (includes Caddy for automatic HTTPS)
+docker compose --profile production up -d
+```
+
+Requires ports 80 and 443 open. Caddy handles SSL certificates automatically via Let's Encrypt.
+
+## Updating
+
+When a new version of Meridian is released, here's how to update your deployment:
+
+### Railway / Render
+
+If your service is connected to the GitHub repo:
+
+1. Pull the latest changes (or Render/Railway auto-deploys on push)
+2. Migrations run automatically — Railway via `startCommand`, Render via `preDeployCommand`
+3. That's it. Zero downtime.
+
+If you forked the repo:
+
+```bash
+git remote add upstream https://github.com/meridian-blog/meridian.git
+git fetch upstream
+git merge upstream/main
+git push origin main   # Triggers auto-deploy
+```
+
+### Fly.io
+
+```bash
+git pull origin main
+fly deploy             # Builds new image, runs migrations via release_command
+```
+
+### Docker (Self-Hosted)
+
+```bash
+git pull origin main
+
+# Run migrations first
+docker compose --profile production run --rm app-prod \
+  deno run --allow-net --allow-read --allow-env --allow-write=./uploads db/migrate.ts
+
+# Rebuild and restart
+docker compose --profile production up -d --build
+```
+
+### What about my data?
+
+Updates never touch your data. The migration system tracks which migrations have already run (in the
+`_migrations` table) and only applies new ones. Your posts, members, settings, and uploads are safe.
+
 ## Design
 
 Meridian uses a **"warm brutalism"** design language:
@@ -209,4 +306,4 @@ Meridian uses a **"warm brutalism"** design language:
 
 ## License
 
-MIT
+AGPLv3 — see [LICENSE](LICENSE)
