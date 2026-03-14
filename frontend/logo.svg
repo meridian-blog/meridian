@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="32" fill="#1A1A1A"/>
+  <rect width="512" height="512" rx="32" fill="#1A1A1A" />
   <!--
     Classic serif M with:
     - Bracketed serifs at baseline on all four feet
@@ -8,7 +8,9 @@
     - Center V dip reaching about 65% down
     Constructed as a single closed outline path
   -->
-  <path fill="#FAF9F6" d="
+  <path
+    fill="#FAF9F6"
+    d="
     M 68 400
     L 68 394
     Q 90 394 100 386 Q 110 378 110 358
@@ -35,5 +37,6 @@
     Q 170 378 180 386 Q 190 394 212 394
     L 212 400
     Z
-  "/>
+  "
+  />
 </svg>
