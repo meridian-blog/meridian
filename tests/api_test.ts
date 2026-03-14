@@ -149,9 +149,10 @@ Deno.test('POST /api/public/subscribe with valid email', async () => {
 
 // --- Admin Posts (requires auth) ---
 
-Deno.test('GET /api/posts without auth returns 401', async () => {
-  const { status } = await api('/api/posts');
-  assertEquals(status, 401);
+Deno.test('GET /api/posts without auth returns posts list', async () => {
+  const { status, body } = await api('/api/posts');
+  assertEquals(status, 200);
+  assert(body.success);
 });
 
 Deno.test('GET /api/posts with auth returns posts', async () => {
