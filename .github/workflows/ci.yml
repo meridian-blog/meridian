@@ -16,7 +16,7 @@ jobs:
 
       - uses: denoland/setup-deno@v2
         with:
-          deno-version: '2.1.4'
+          deno-version: '2.x'
 
       - name: Check formatting
         run: deno fmt --check
@@ -53,7 +53,7 @@ jobs:
 
       - uses: denoland/setup-deno@v2
         with:
-          deno-version: '2.1.4'
+          deno-version: '2.x'
 
       - name: Run unit tests
         run: deno test --allow-all tests/shared_test.ts

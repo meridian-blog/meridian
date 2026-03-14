@@ -2,7 +2,7 @@
 # Multi-stage build for production-ready image
 
 # ---- Stage 1: Cache dependencies ----
-FROM denoland/deno:2.1.4 AS deps
+FROM denoland/deno:2.7.4 AS deps
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ COPY db/ db/
 RUN deno cache backend/main.ts db/migrate.ts || true
 
 # ---- Stage 2: Production image ----
-FROM denoland/deno:2.1.4
+FROM denoland/deno:2.7.4
 
 # Run as the built-in 'deno' user (non-root)
 WORKDIR /app
